@@ -16,7 +16,7 @@ public:
     void set_max_pending_connections(int max);
     tcp_socket* get_next_connection();
 private:
-    int max_pending_connections = 10;
+    int max_pending_connections = 20;
     static int create_and_bind(char * address, char * service);
     static int make_socket_non_blocking(int socket_fd);
 };
