@@ -5,43 +5,194 @@ bool tcp_server::begin_listening(char *address, char * service)
     int socket_fd = create_and_bind(address, service);
     if (socket_fd == -1)
     {
+        perror ("bind");
         //TODO: check error
         return false;
     }
-    int status = listen(socket_fd, max_pending_connections);
-
+    printf("created and binded\n");
+    fflush(stdout);
+    int status = make_socket_non_blocking(socket_fd);
     if (status == -1)
     {
+        perror ("make non blocking");
         //TODO: check error
         close(socket_fd);
         return false;
     }
-    while (true)
+
+    status = listen(socket_fd, max_pending_connections);
+
+    if (status == -1)
     {
-        sockaddr_storage their_addr;
-        socklen_t addr_size = sizeof their_addr;
-        int accepted_fd = accept(socket_fd, (struct sockaddr *)&their_addr, &addr_size);
-        if (accepted_fd == -1)
-        {
-            //TODO: check error
-            continue;
-        }
-        char s[INET_ADDRSTRLEN];
-        inet_ntop(their_addr.ss_family,
-                    &(((struct sockaddr_in*)&their_addr)->sin_addr),
-                    s, sizeof s);
-        printf("Server: got connection from %s\n", s);
-        if (!fork()) { // this is the child process
-            close(socket_fd); // child doesn't need the listener
-            if (send(accepted_fd, "Hello, world!", 13, 0) == -1)
-                perror("send");
-            close(accepted_fd);
-            return true;
-        }
-        close(accepted_fd);
+        perror ("listen");
+        //TODO: check error
+        close(socket_fd);
+        return false;
     }
-    close(socket_fd);
+
+    epoll_fd = epoll_create1(0);
+    if (epoll_fd == -1)
+    {
+        perror("epoll_create1");
+        //TODO: check error
+        close(socket_fd);
+        return false;
+    }
+
+    epoll_event event;
+    epoll_event *events;
+    event.data.fd = socket_fd;
+    event.events = EPOLLIN | EPOLLET;
+    status = epoll_ctl(epoll_fd, EPOLL_CTL_ADD, socket_fd, &event);
+    if (status == -1)
+    {
+        perror("epoll_ctl");
+        //TODO: check error
+        return false;
+    }
+    printf("and here epoll begins\n");
+    fflush(stdout);
+    //Buffer where events are returned
+
+    events = (epoll_event*) calloc(MAX_EVENTS, sizeof event);
+    running = true;
+    t = new std::thread(&tcp_server::run, this, socket_fd, events);
     return true;
+}
+
+void tcp_server::run(int socket_fd, epoll_event* events)
+{
+    epoll_event event;
+    int status = 0;
+    while (running)
+    {
+        int n = epoll_wait(epoll_fd, events, MAX_EVENTS, -1);
+        printf("new events: %d\n", n);
+        fflush(stdout);
+        for (int i = 0; i < n; i++)
+        {
+            if (!running)
+            {
+                break;
+            }
+            if ((events[i].events & EPOLLERR) ||
+                (events[i].events & EPOLLHUP) ||
+                (!(events[i].events & EPOLLIN)))
+            {
+                //Erorr occured
+                fprintf (stderr, "epoll error\n");
+                close (events[i].data.fd);
+                continue;
+            }
+            else if (socket_fd == events[i].data.fd)
+            {
+                //Notifiaction on main socket
+                while (true)
+                {
+                    struct sockaddr in_addr;
+                    socklen_t in_len;
+                    int accepted_fd;
+                    char hbuf[NI_MAXHOST], sbuf[NI_MAXSERV];
+
+                    in_len = sizeof in_addr;
+                    accepted_fd = accept (socket_fd, &in_addr, &in_len);
+                    if (accepted_fd == -1)
+                    {
+                        if ((errno == EAGAIN) ||
+                            (errno == EWOULDBLOCK))
+                        {
+                            //No more connections
+                            printf("No more connections\n");
+                            fflush(stdout);
+                            break;
+                        }
+                        else
+                        {
+                            perror("accept");
+                            //TODO: check error
+                            break;
+                        }
+                    }
+
+                    status = getnameinfo (&in_addr, in_len,
+                                           hbuf, sizeof hbuf,
+                                           sbuf, sizeof sbuf,
+                                           NI_NUMERICHOST | NI_NUMERICSERV);
+                    if (status == 0)
+                    {
+                        printf("Accepted connection on descriptor %d "
+                                "(host=%s, port=%s)\n", accepted_fd, hbuf, sbuf);
+                        fflush(stdout);
+                    }
+
+                    status = make_socket_non_blocking(accepted_fd);
+                    if (status == -1)
+                    {
+                        perror("non blocking");
+                        //TODO: check error
+                        continue;
+                    }
+                    event.data.fd = accepted_fd;
+                    event.events = EPOLLIN | EPOLLET;
+                    status = epoll_ctl (epoll_fd, EPOLL_CTL_ADD, accepted_fd, &event);
+                    if (status == -1)
+                    {
+                        perror ("epoll_ctl");
+                        //TODO: check error
+                        continue;
+                    }
+                    new_connection(accepted_fd);
+                }
+            }
+            else
+            {
+                //Read data
+                bool need_close = false;
+                while (true)
+                {
+                    ssize_t count;
+                    char buf[512];
+
+                    count = read (events[i].data.fd, buf, sizeof buf);
+                    if (count == -1)
+                    {
+                        if (errno != EAGAIN)
+                        {
+                            //If some weird error occurred
+                            perror ("read");
+                            //TODO: check eror
+                            need_close = true;
+                        }
+                        break;
+                    }
+                    else if (count == 0)
+                    {
+                        //Reached end of stream (closed connection)
+                        need_close = true;
+                        break;
+                    }
+                    on_read(events[i].data.fd, buf, count);
+                }
+
+                if (need_close)
+                {
+                    close_connection(events[i].data.fd);
+                    printf ("Closed connection on descriptor %d\n",
+                            events[i].data.fd);
+                    //Closing fd -> removing it from epoll fd
+                    close (events[i].data.fd);
+                }
+            }
+        }
+    }
+    free(events);
+    close(socket_fd);
+}
+
+void tcp_server::stop_listening()
+{
+    running = false;
+    t->join();
 }
 
 int tcp_server::create_and_bind(char * address, char * service)

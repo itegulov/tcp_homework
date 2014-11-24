@@ -53,8 +53,13 @@ bool tcp_client::tcp_connect(char * address, char * service)
     inet_ntop(p->ai_family, get_in_addr((struct sockaddr *)p->ai_addr),
                 s, sizeof s);
     printf("Client: connecting to %s\n", s);
+    fflush(stdout);
 
     freeaddrinfo(servinfo); // all done with this structure
+    if (send(socket_fd, "Hello, world!\n", 14, 0) == -1)
+    {
+        perror("send");
+    }
     int numbytes;
     if ((numbytes = recv(socket_fd, buf, MAX_DATA_SIZE - 1, 0)) == -1) {
         perror("recv");
@@ -64,6 +69,7 @@ bool tcp_client::tcp_connect(char * address, char * service)
     buf[numbytes] = '\0';
 
     printf("Client: received '%s'\n", buf);
+    fflush(stdout);
 
     close(socket_fd);
 
