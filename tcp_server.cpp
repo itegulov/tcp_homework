@@ -1,21 +1,26 @@
 #include "tcp_server.h"
 
+tcp_server::~tcp_server()
+{
+    if (t != nullptr && t->joinable())
+    {
+        running = false;
+        t->join();
+    }
+}
+
 bool tcp_server::begin_listening(char *address, char * service)
 {
     int socket_fd = create_and_bind(address, service);
     if (socket_fd == -1)
     {
-        perror ("bind");
-        //TODO: check error
+        throw tcp_exception(strerror(errno));
         return false;
     }
-    printf("created and binded\n");
-    fflush(stdout);
     int status = make_socket_non_blocking(socket_fd);
     if (status == -1)
     {
-        perror ("make non blocking");
-        //TODO: check error
+        throw tcp_exception(strerror(errno));
         close(socket_fd);
         return false;
     }
@@ -24,8 +29,7 @@ bool tcp_server::begin_listening(char *address, char * service)
 
     if (status == -1)
     {
-        perror ("listen");
-        //TODO: check error
+        throw tcp_exception(strerror(errno));
         close(socket_fd);
         return false;
     }
@@ -33,8 +37,7 @@ bool tcp_server::begin_listening(char *address, char * service)
     epoll_fd = epoll_create1(0);
     if (epoll_fd == -1)
     {
-        perror("epoll_create1");
-        //TODO: check error
+        throw tcp_exception(strerror(errno));
         close(socket_fd);
         return false;
     }
@@ -46,14 +49,10 @@ bool tcp_server::begin_listening(char *address, char * service)
     status = epoll_ctl(epoll_fd, EPOLL_CTL_ADD, socket_fd, &event);
     if (status == -1)
     {
-        perror("epoll_ctl");
-        //TODO: check error
+        throw tcp_exception(strerror(errno));
         return false;
     }
-    printf("and here epoll begins\n");
-    fflush(stdout);
     //Buffer where events are returned
-
     events = (epoll_event*) calloc(MAX_EVENTS, sizeof event);
     running = true;
     t = new std::thread(&tcp_server::run, this, socket_fd, events);
@@ -67,7 +66,6 @@ void tcp_server::run(int socket_fd, epoll_event* events)
     while (running)
     {
         int n = epoll_wait(epoll_fd, events, MAX_EVENTS, -1);
-        printf("new events: %d\n", n);
         fflush(stdout);
         for (int i = 0; i < n; i++)
         {
@@ -102,8 +100,6 @@ void tcp_server::run(int socket_fd, epoll_event* events)
                             (errno == EWOULDBLOCK))
                         {
                             //No more connections
-                            printf("No more connections\n");
-                            fflush(stdout);
                             break;
                         }
                         else
@@ -205,17 +201,17 @@ int tcp_server::create_and_bind(char * address, char * service)
     hints.ai_socktype = SOCK_STREAM;
     if ((status = getaddrinfo(address, service, &hints, &servinfo)) != 0)
     {
-        fprintf(stderr, "getaddrinfo error: %s\n", gai_strerror(status));
-        //TODO: check error
+
+        throw tcp_exception(gai_strerror(status));
         return -1;
     }
 
     struct sockaddr_in *ipv4 = (struct sockaddr_in *)servinfo->ai_addr;
     char ipstr[INET_ADDRSTRLEN];
     inet_ntop(servinfo->ai_family, &(ipv4->sin_addr), ipstr, sizeof ipstr);
-    printf("Server: starting on ip %s and port %s...\n", ipstr, service);
     int socket_fd = -1;
     addrinfo* rp;
+
     for (rp = servinfo; rp != nullptr; rp = rp->ai_next)
     {
         socket_fd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
@@ -233,11 +229,13 @@ int tcp_server::create_and_bind(char * address, char * service)
 
         close(socket_fd);
     }
+
     if (rp == nullptr)
     {
-        //TODO: check error
+        throw tcp_exception("Couldn't bind to address");
         return -1;
     }
+
     freeaddrinfo(servinfo);
     return socket_fd;
 }
@@ -247,14 +245,14 @@ int tcp_server::make_socket_non_blocking(int socket_fd)
     int flags = fcntl(socket_fd, F_GETFL, 0);
     if (flags == -1)
     {
-        //TODO: check error
+        throw tcp_exception("fcntl() error");
         return -1;
     }
     flags |= O_NONBLOCK;
     int status = fcntl(socket_fd, F_SETFL, flags);
     if (status == -1)
     {
-        //TODO: check error
+        throw tcp_exception("fcntl() error");
         return -1;
     }
     return 0;
@@ -263,4 +261,18 @@ int tcp_server::make_socket_non_blocking(int socket_fd)
 void tcp_server::set_max_pending_connections(int max)
 {
     max_pending_connections = max;
+}
+
+/*
+ * TCP Exception implementation
+ */
+
+const char* tcp_exception::what() const throw()
+{
+    return description;
+}
+
+tcp_exception::tcp_exception(const char * description)
+{
+    this->description = description;
 }

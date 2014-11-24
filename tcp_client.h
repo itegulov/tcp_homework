@@ -1,3 +1,5 @@
+#ifndef TCP_CLIENT_H
+#define TCP_CLIENT_H
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
@@ -16,3 +18,4 @@ public:
 private:
     static void *get_in_addr(struct sockaddr *sa);
 };
+#endif //TCP_CLIENT_H

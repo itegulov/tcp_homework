@@ -1,3 +1,5 @@
+#ifndef TCP_SERVER_H
+#define TCP_SERVER_H
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
@@ -7,15 +9,20 @@
 #include <fcntl.h>
 #include <sys/epoll.h>
 #include <errno.h>
+
+
 #include <boost/signals2.hpp>
 
 #include <cstdio>
 #include <cstring>
 #include <cstdlib>
 #include <thread>
+#include <exception>
 
-struct tcp_server {
+struct tcp_server
+{
 public:
+    ~tcp_server();
     bool begin_listening(char * address, char * service);
     void stop_listening();
     void set_max_pending_connections(int max);
@@ -32,3 +39,14 @@ private:
     static int create_and_bind(char * address, char * service);
     static int make_socket_non_blocking(int socket_fd);
 };
+
+struct tcp_exception: public std::exception
+{
+public:
+    tcp_exception(const char * description);
+    virtual const char* what() const throw();
+private:
+    const char * description;
+};
+#endif //TCP_SERVER_H
+
