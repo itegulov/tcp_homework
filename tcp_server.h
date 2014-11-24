@@ -8,8 +8,9 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/epoll.h>
+#include <sys/eventfd.h>
 #include <errno.h>
-
+#include <stdint.h>
 
 #include <boost/signals2.hpp>
 
@@ -18,6 +19,9 @@
 #include <cstdlib>
 #include <thread>
 #include <exception>
+#include <map>
+
+#include "tcp_socket.h"
 
 struct tcp_server
 {
@@ -26,13 +30,12 @@ public:
     bool begin_listening(char * address, char * service);
     void stop_listening();
     void set_max_pending_connections(int max);
-    boost::signals2::signal<void (int)> new_connection;
-    boost::signals2::signal<void (int)> close_connection;
-    boost::signals2::signal<void (int, char*, int)> on_read;
+    boost::signals2::signal<void (tcp_socket*)> new_connection;
 private:
     const int MAX_EVENTS = 64;
-    int max_pending_connections = 20;
+    int max_pending_connections = 16;
     int epoll_fd;
+    int event_fd;
     bool running = false;
     std::thread* t;
     void run(int socket_fd, epoll_event* events);

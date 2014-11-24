@@ -2,9 +2,11 @@
 
 tcp_server::~tcp_server()
 {
+    running = false;
     if (t != nullptr && t->joinable())
     {
-        running = false;
+        char * buf = "1";
+        int count = write(event_fd, buf, sizeof buf);
         t->join();
     }
 }
@@ -52,6 +54,29 @@ bool tcp_server::begin_listening(char *address, char * service)
         throw tcp_exception(strerror(errno));
         return false;
     }
+    //BEGIN
+    event_fd = eventfd(0, 0);
+    if (event_fd == -1)
+    {
+        throw tcp_exception(strerror(errno));
+    }
+    status = make_socket_non_blocking(event_fd);
+    if (status == -1)
+    {
+        perror("non blocking");
+        //TODO: check error
+        return false;
+    }
+    event.data.fd = event_fd;
+    event.events = EPOLLIN | EPOLLET;
+    status = epoll_ctl (epoll_fd, EPOLL_CTL_ADD, event_fd, &event);
+    if (status == -1)
+    {
+        perror ("epoll_ctl");
+        //TODO: check error
+        return false;
+    }
+    //END
     //Buffer where events are returned
     events = (epoll_event*) calloc(MAX_EVENTS, sizeof event);
     running = true;
@@ -63,10 +88,10 @@ void tcp_server::run(int socket_fd, epoll_event* events)
 {
     epoll_event event;
     int status = 0;
+    std::map<int, tcp_socket*> map;
     while (running)
     {
         int n = epoll_wait(epoll_fd, events, MAX_EVENTS, -1);
-        fflush(stdout);
         for (int i = 0; i < n; i++)
         {
             if (!running)
@@ -137,12 +162,19 @@ void tcp_server::run(int socket_fd, epoll_event* events)
                         //TODO: check error
                         continue;
                     }
-                    new_connection(accepted_fd);
+                    tcp_socket* socket = new tcp_socket(accepted_fd);
+                    map[accepted_fd] = socket;
+                    new_connection(socket);
                 }
+            }
+            else if (event_fd == events[i].data.fd)
+            {
+                break;
             }
             else
             {
                 //Read data
+                /*
                 bool need_close = false;
                 while (true)
                 {
@@ -178,6 +210,8 @@ void tcp_server::run(int socket_fd, epoll_event* events)
                     //Closing fd -> removing it from epoll fd
                     close (events[i].data.fd);
                 }
+                */
+                map[events[i].data.fd]->on_read(map[events[i].data.fd]);
             }
         }
     }
