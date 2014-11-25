@@ -5,7 +5,7 @@ void *tcp_client::get_in_addr(struct sockaddr *sa)
     return &(((struct sockaddr_in*)sa)->sin_addr);
 }
 
-bool tcp_client::tcp_connect(char * address, char * service)
+bool tcp_client::tcp_connect(const char * address, const char * service)
 {
     addrinfo hints, *servinfo, *p;
     const int MAX_DATA_SIZE = 100;

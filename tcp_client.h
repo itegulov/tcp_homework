@@ -14,7 +14,7 @@
 
 struct tcp_client {
 public:
-    bool tcp_connect(char * address, char * service);
+    bool tcp_connect(const char * address, const char * service);
 private:
     static void *get_in_addr(struct sockaddr *sa);
 };

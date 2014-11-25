@@ -86,7 +86,6 @@ int main() {
     signal(SIGTSTP, sig_handler);
     server = new tcp_server();
     server->new_connection.connect(&just_print);
-    //server->on_read.connect(&just_response);
     server->begin_listening("127.0.0.1", "20628");
     sleep(1000);
 }
