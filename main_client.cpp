@@ -1,10 +1,18 @@
 #include "tcp_client.h"
 
-int main() {
-    for (int i = 0; i < 5; i++)
-    {
-        fork();
-    }
+void on_connect(tcp_socket* socket)
+{
+    const char * buf = "Hello, world!\n";
+    socket->write_data(buf, 14);
+    char new_buf[512];
+    socket->read_data(new_buf, 512);
+    printf("Client: received '%s'\n", new_buf);
+    fflush(stdout);
+}
+
+int main()
+{
     tcp_client client;
-    client.tcp_connect("127.0.0.1", "20628");
+    client.on_connect.connect(on_connect);
+    client.tcp_connect("127.0.0.1", "20627");
 }

@@ -121,7 +121,7 @@ int tcp_socket::read_data(char *data, int max_size)
     {
         return 0;
     }
-    int count = read(fd_, data, max_size);
+    int count = recv(fd_, data, max_size, 0);
     if (count == -1)
     {
         if (errno != EAGAIN)
@@ -145,11 +145,10 @@ int tcp_socket::write_data(const char *data, int max_size)
     {
         return 0;
     }
-    int count = write(fd_, data, max_size);
+    int count = send(fd_, data, max_size, 0);
     if (count == -1)
     {
         throw tcp_exception(strerror(errno));
-        return -1;
     }
     return count;
 }

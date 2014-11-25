@@ -63,7 +63,7 @@ void tcp_server::create_event_fd()
     event_socket_->make_socket_non_blocking();
     epoll_event event;
     event.data.fd = event_fd_;
-    event.events = EPOLLIN | EPOLLET;
+    event.events = EPOLLIN | EPOLLET; //WUT?!
     int status = epoll_ctl (epoll_fd_, EPOLL_CTL_ADD, event_socket_->get_socket_descriptor(), &event);
     if (status == -1)
     {

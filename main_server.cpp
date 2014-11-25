@@ -31,8 +31,8 @@ void just_get(tcp_socket* socket)
     const char * response = "HTTP/1.0 200 Ok\r\n"
                             "Content-Type: text/html; charset=\"utf-8\"\r\n"
                             "\r\n"
-                            "<h1>Nothing to see here</h1>\n";
-    socket->write_all(response, strlen(response));
+                            "<h1>Nothing to see here</h1>";
+    socket->write_data(response, strlen(response) + 1);
     socket->close_socket();
 }
 
@@ -50,6 +50,6 @@ int main() {
     signal(SIGTSTP, sig_handler);
     server = new tcp_server();
     server->new_connection.connect(&just_print);
-    server->begin_listening("127.0.0.1", "20629");
+    server->begin_listening("127.0.0.1", "20627");
     sleep(1000);
 }
