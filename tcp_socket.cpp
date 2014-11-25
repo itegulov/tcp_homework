@@ -28,6 +28,10 @@ void tcp_socket::close_socket()
 
 int tcp_socket::get_socket_descriptor()
 {
+    if (!is_open_)
+    {
+        throw tcp_exception("Socket wasn't opened");
+    }
     return fd_;
 }
 
@@ -36,42 +40,11 @@ bool tcp_socket::is_open()
     return is_open_;
 }
 
-int tcp_socket::read_data(char *data, int max_size)
-{
-    int count = read(fd_, data, max_size);
-    if (count == -1)
-    {
-        if (errno != EAGAIN)
-        {
-            close_socket();
-            //TODO: error check
-        }
-        return -1;
-    }
-    else if (count == 0)
-    {
-        close_socket();
-        return 0;
-    }
-    return count;
-}
-
-int tcp_socket::write_data(const char *data, int size)
-{
-    int count = write(fd_, data, size);
-    if (count == -1)
-    {
-        throw tcp_exception(strerror(errno));
-        return -1;
-    }
-    return count;
-}
-
 void tcp_socket::bind_socket(const char *address, const char *service)
 {
     int status = 0;
     addrinfo hints;
-    addrinfo * servinfo;
+    addrinfo* servinfo;
     memset(&hints, 0, sizeof hints);
     hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_STREAM;
@@ -131,6 +104,10 @@ void tcp_socket::make_socket_non_blocking()
 
 void tcp_socket::listen(int max_pending_connections)
 {
+    if (!is_open_)
+    {
+        throw tcp_exception("Socket wasn't opened");
+    }
     int status = ::listen(fd_, max_pending_connections);
     if (status == -1)
     {
@@ -138,8 +115,69 @@ void tcp_socket::listen(int max_pending_connections)
     }
 }
 
+int tcp_socket::read_data(char *data, int max_size)
+{
+    if (!is_open_)
+    {
+        return 0;
+    }
+    int count = read(fd_, data, max_size);
+    if (count == -1)
+    {
+        if (errno != EAGAIN)
+        {
+            close_socket();
+            throw tcp_exception(strerror(errno));
+        }
+        return -1;
+    }
+    else if (count == 0)
+    {
+        close_socket();
+        return 0;
+    }
+    return count;
+}
+
+int tcp_socket::write_data(const char *data, int max_size)
+{
+    if (!is_open_)
+    {
+        return 0;
+    }
+    int count = write(fd_, data, max_size);
+    if (count == -1)
+    {
+        throw tcp_exception(strerror(errno));
+        return -1;
+    }
+    return count;
+}
+
+void tcp_socket::write_all(const char* data, int size)
+{
+    if (!is_open_)
+    {
+        return;
+    }
+    int total_count = 0;
+    while (total_count != size)
+    {
+        int count = write_data(data, size - total_count);
+        if (count <= 0)
+        {
+            break;
+        }
+        total_count += count;
+    }
+}
+
 std::string tcp_socket::read_all()
 {
+    if (!is_open_)
+    {
+        return "";
+    }
     std::string s = "";
     while (true) {
         char buffer[CHUNK_SIZE];

@@ -24,11 +24,12 @@ public:
     void close_socket();
     bool is_open();
     int read_data(char* data, int max_size);
-    int write_data(const char* data, int size);
+    int write_data(const char* data, int max_size);
     void bind_socket(const char * address, const char * service);
     void make_socket_non_blocking();
     void listen(int max_pending_connections);
     std::string read_all();
+    void write_all(const char* data, int size);
 private:
     static const int CHUNK_SIZE = 512;
     int fd_;
