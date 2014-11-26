@@ -14,8 +14,6 @@ tcp_socket::tcp_socket(int fd)
 
 tcp_socket::~tcp_socket()
 {
-    printf("Delete socket\n");
-    fflush(stdout);
     close();
 }
 
@@ -24,22 +22,16 @@ void tcp_socket::close()
     if (is_open_)
     {
         ::close(fd_);
-        printf("Close socket\n");
-        fflush(stdout);
         is_open_ = false;
     }
 }
 
-int tcp_socket::get_socket_descriptor()
+int tcp_socket::get_descriptor() const
 {
-    if (!is_open_)
-    {
-        throw tcp_exception("Socket wasn't opened");
-    }
     return fd_;
 }
 
-bool tcp_socket::is_open()
+bool tcp_socket::is_open() const
 {
     return is_open_;
 }
@@ -57,7 +49,7 @@ void tcp_socket::bind(const char *address, const char *service)
         throw tcp_exception(gai_strerror(status));
     }
 
-    struct sockaddr_in *ipv4 = (struct sockaddr_in *)servinfo->ai_addr;
+    sockaddr_in *ipv4 = (sockaddr_in *) servinfo->ai_addr;
     char ipstr[INET_ADDRSTRLEN];
     inet_ntop(servinfo->ai_family, &(ipv4->sin_addr), ipstr, sizeof ipstr);
     int socket_fd = -1;
@@ -149,7 +141,7 @@ int tcp_socket::read_data(char *data, int max_size)
     return count;
 }
 
-int tcp_socket::write_data(const char *data, int max_size)
+int tcp_socket::write_data(const char *data, int max_size) const
 {
     if (!is_open_)
     {
@@ -163,7 +155,7 @@ int tcp_socket::write_data(const char *data, int max_size)
     return count;
 }
 
-void tcp_socket::write_all(const char* data, int size)
+void tcp_socket::write_all(const char* data, int size) const
 {
     if (!is_open_)
     {
@@ -177,27 +169,34 @@ void tcp_socket::write_all(const char* data, int size)
         {
             break;
         }
+        data += count;
         total_count += count;
     }
 }
 
-std::string tcp_socket::read_all()
+char* tcp_socket::read_all()
 {
     if (!is_open_)
     {
-        return "";
+        char * empty = new char[1];
+        empty[0] = '\0';
+        return empty;
     }
-    std::string s = "";
-    while (true) {
-        char buffer[CHUNK_SIZE];
-        if (read_data(buffer, CHUNK_SIZE) <= 0)
+    int total_count = 0;
+    char* result = new char[RESULT_SIZE + 1];
+    char buffer[CHUNK_SIZE];
+    while (total_count < RESULT_SIZE) {
+        memset(buffer, 0, CHUNK_SIZE);
+        int count = read_data(buffer, std::min(CHUNK_SIZE, RESULT_SIZE - total_count));
+        if (count <= 0)
         {
             break;
         }
         else
         {
-            s += buffer;
+            strcat(result, buffer);
+            total_count += count;
         }
     }
-    return s;
+    return result;
 }

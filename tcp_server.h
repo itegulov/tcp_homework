@@ -26,14 +26,16 @@
 
 struct tcp_server
 {
+    friend struct tcp_socket;
 public:
     ~tcp_server();
-    bool begin_listening(const char * address, const char * service);
+    bool listen(const char * address, const char * service);
     void stop_listening();
     void set_max_pending_connections(int max);
     boost::signals2::signal<void (tcp_socket*)> new_connection;
 private:
     static const int MAX_EVENTS = 64;
+    static constexpr const char * END_STR = "1";
     int max_pending_connections_ = 16;
     int epoll_fd_;
     int event_fd_;

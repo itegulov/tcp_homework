@@ -5,8 +5,7 @@ tcp_server::~tcp_server()
     is_running_ = false;
     if (thread_ != nullptr && thread_->joinable())
     {
-        const char * buf = "1";
-        ssize_t count = write(event_fd_, buf, sizeof buf);
+        ssize_t count = write(event_fd_, END_STR, sizeof END_STR);
         if (count == -1)
         {
             thread_->detach();
@@ -18,7 +17,7 @@ tcp_server::~tcp_server()
     }
 }
 
-bool tcp_server::begin_listening(const char * address, const char * service)
+bool tcp_server::listen(const char * address, const char * service)
 {
     tcp_socket* socket = new tcp_socket();
     socket->bind(address, service);
@@ -34,9 +33,9 @@ bool tcp_server::begin_listening(const char * address, const char * service)
 
     epoll_event event;
     epoll_event *events;
-    event.data.fd = socket->get_socket_descriptor();
+    event.data.fd = socket->get_descriptor();
     event.events = EPOLLIN | EPOLLET;
-    int status = epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, socket->get_socket_descriptor(), &event);
+    int status = epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, socket->get_descriptor(), &event);
     if (status == -1)
     {
         throw tcp_exception(strerror(errno));
@@ -84,7 +83,7 @@ void tcp_server::run(tcp_socket* socket, epoll_event* events)
 {
     epoll_event event;
     int status = 0;
-    std::map<int, tcp_socket*> map;
+    std::map<int, tcp_socket*> sockets;
     while (is_running_)
     {
         int n = epoll_wait(epoll_fd_, events, MAX_EVENTS, -1);
@@ -101,18 +100,18 @@ void tcp_server::run(tcp_socket* socket, epoll_event* events)
                 (!(events[i].events & EPOLLIN)))
             {
                 //Erorr occured
-                map[events[i].data.fd]->close();
+                sockets[events[i].data.fd]->close();
                 continue;
             }
-            else if (socket->get_socket_descriptor() == events[i].data.fd)
+            else if (socket->get_descriptor() == events[i].data.fd)
             {
                 //Notifiaction on main socket
                 while (true)
                 {
-                    struct sockaddr in_addr;
+                    sockaddr in_addr;
                     socklen_t in_len = sizeof in_addr;
 
-                    int accepted_fd = accept (socket->get_socket_descriptor(), &in_addr, &in_len);
+                    int accepted_fd = accept (socket->get_descriptor(), &in_addr, &in_len);
                     if (accepted_fd == -1)
                     {
                         if ((errno == EAGAIN) ||
@@ -139,7 +138,7 @@ void tcp_server::run(tcp_socket* socket, epoll_event* events)
                     if (status == 0)
                     {
                         printf("Accepted connection on descriptor %d "
-                                "(host=%s, port=%s)\n", accepted_socket->get_socket_descriptor(), hbuf, sbuf);
+                                "(host=%s, port=%s)\n", accepted_socket->get_descriptor(), hbuf, sbuf);
                         fflush(stdout);
                     }
 
@@ -152,17 +151,21 @@ void tcp_server::run(tcp_socket* socket, epoll_event* events)
                         continue;
                     }
 
-                    event.data.fd = accepted_socket->get_socket_descriptor();
+                    event.data.fd = accepted_socket->get_descriptor();
                     event.events = EPOLLIN | EPOLLET;
-                    status = epoll_ctl (epoll_fd_, EPOLL_CTL_ADD, accepted_socket->get_socket_descriptor(), &event);
+                    status = epoll_ctl (epoll_fd_, EPOLL_CTL_ADD, accepted_socket->get_descriptor(), &event);
                     if (status == -1)
                     {
                         perror ("epoll_ctl");
                         //TODO: check error
                         continue;
                     }
-                    map[accepted_fd] = accepted_socket;
+                    sockets[accepted_fd] = accepted_socket;
                     new_connection(accepted_socket);
+                    if (!accepted_socket->is_open())
+                    {
+                        sockets.erase(accepted_fd);
+                    }
                 }
             }
             else if (event_fd_ == events[i].data.fd)
@@ -174,13 +177,19 @@ void tcp_server::run(tcp_socket* socket, epoll_event* events)
             else
             {
                 //Read data
-                map[events[i].data.fd]->on_read(map[events[i].data.fd]);
+                tcp_socket* socket = sockets[events[i].data.fd];
+                socket->on_read(socket);
+                if (!socket->is_open())
+                {
+                    sockets.erase(socket->get_descriptor());
+                }
             }
         }
     }
-    for (auto socket : map)
+
+    for (auto socket : sockets)
     {
-        socket.second->close();
+        delete socket.second;
     }
     free(events);
     close(epoll_fd_);

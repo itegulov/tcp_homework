@@ -2,6 +2,7 @@
 #include "tcp_socket.h"
 
 #include <csignal>
+#include <iostream>
 
 #include <signal.h>
 
@@ -9,21 +10,16 @@ void just_get(tcp_socket *socket);
 
 void just_print(tcp_socket* socket)
 {
-    printf("accepted_fd: %d\n", socket->get_socket_descriptor());
+    printf("accepted_fd: %d\n", socket->get_descriptor());
     fflush(stdout);
     socket->on_read.connect(&just_get);
 }
 
 void just_get(tcp_socket* socket)
 {
-    std::string s = socket->read_all();
-    ssize_t count = write(1, s.c_str(), strlen(s.c_str()));
-    const char * response = "HTTP/1.0 200 Ok\r\n"
-                            "Content-Type: text/html; charset=\"utf-8\"\r\n"
-                            "\r\n"
-                            "<h1>Nothing to see here</h1>";
-    socket->write_data(response, strlen(response) + 1);
-    socket->close();
+    char* s = socket->read_all();
+    std::cout << s;
+    socket->write_all(s, strlen(s));
 }
 
 tcp_server* server;
@@ -51,6 +47,7 @@ int main() {
     }
     server = new tcp_server();
     server->new_connection.connect(&just_print);
-    server->begin_listening("127.0.0.1", "20620");
-    sleep(1000);
+    server->listen("127.0.0.1", "20619");
+    sleep(30);
+    delete server;
 }

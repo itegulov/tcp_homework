@@ -21,21 +21,23 @@ public:
 
     ~tcp_socket();
 
-    int get_socket_descriptor();
+    int get_descriptor() const;
     void close();
-    bool is_open();
+    bool is_open() const;
     void bind(const char * address, const char * service);
     void make_non_blocking();
     void listen(int max_pending_connections);
 
     int read_data(char* data, int max_size);
-    int write_data(const char* data, int max_size);
-    std::string read_all();
-    void write_all(const char* data, int size);
+    int write_data(const char* data, int max_size) const;
+    char* read_all();
+    void write_all(const char* data, int size) const;
 
     boost::signals2::signal<void (tcp_socket*)> on_read;
 private:
     static const int CHUNK_SIZE = 512;
+    static const int RESULT_SIZE = 8192;
+    static constexpr const char* EMPTY_STR = "";
     int fd_;
     bool is_open_;
 };

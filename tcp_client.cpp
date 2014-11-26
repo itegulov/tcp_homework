@@ -1,8 +1,8 @@
 #include "tcp_client.h"
 
-void *tcp_client::get_in_addr(struct sockaddr *sa)
+void *tcp_client::get_in_addr(sockaddr *sa)
 {
-    return &(((struct sockaddr_in*)sa)->sin_addr);
+    return &(((sockaddr_in*)sa)->sin_addr);
 }
 
 void tcp_client::tcp_connect(const char * address, const char * service)
@@ -42,7 +42,7 @@ void tcp_client::tcp_connect(const char * address, const char * service)
 
     tcp_socket * socket = new tcp_socket(socket_fd);
 
-    inet_ntop(p->ai_family, get_in_addr((struct sockaddr *)p->ai_addr),
+    inet_ntop(p->ai_family, get_in_addr((sockaddr *)p->ai_addr),
                 s, sizeof s);
     printf("Client: connecting to %s\n", s);
     fflush(stdout);
