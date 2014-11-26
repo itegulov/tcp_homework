@@ -28,18 +28,18 @@ public:
     void make_non_blocking();
     void listen(int max_pending_connections);
 
-    int read_data(char* data, int max_size);
-    int write_data(const char* data, int max_size) const;
+    ssize_t read_data(char* data, ssize_t max_size);
+    ssize_t write_data(const char* data, ssize_t max_size) const;
     char* read_all();
-    void write_all(const char* data, int size) const;
+    void write_all(const char* data, ssize_t size) const;
 
     boost::signals2::signal<void (tcp_socket*)> on_read;
 private:
-    static const int CHUNK_SIZE = 512;
-    static const int RESULT_SIZE = 8192;
+    static const ssize_t CHUNK_SIZE = 512;
+    static const ssize_t RESULT_SIZE = 8192;
     static constexpr const char* EMPTY_STR = "";
     int fd_;
-    bool is_open_;
+    bool is_open_= false;
 };
 
 #endif //TCP_SOCKET_H

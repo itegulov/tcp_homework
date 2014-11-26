@@ -20,6 +20,7 @@ void just_get(tcp_socket* socket)
     char* s = socket->read_all();
     std::cout << s;
     socket->write_all(s, strlen(s));
+    delete[] s;
 }
 
 tcp_server* server;
@@ -48,6 +49,6 @@ int main() {
     server = new tcp_server();
     server->new_connection.connect(&just_print);
     server->listen("127.0.0.1", "20619");
-    sleep(30);
+    sleep(10);
     delete server;
 }

@@ -117,13 +117,13 @@ void tcp_socket::listen(int max_pending_connections)
     }
 }
 
-int tcp_socket::read_data(char *data, int max_size)
+ssize_t tcp_socket::read_data(char *data, ssize_t max_size)
 {
     if (!is_open_)
     {
         return 0;
     }
-    int count = recv(fd_, data, max_size, 0);
+    ssize_t count = recv(fd_, data, max_size, 0);
     if (count == -1)
     {
         if (errno != EAGAIN)
@@ -141,13 +141,13 @@ int tcp_socket::read_data(char *data, int max_size)
     return count;
 }
 
-int tcp_socket::write_data(const char *data, int max_size) const
+ssize_t tcp_socket::write_data(const char *data, ssize_t max_size) const
 {
     if (!is_open_)
     {
         return 0;
     }
-    int count = send(fd_, data, max_size, 0);
+    ssize_t count = send(fd_, data, max_size, 0);
     if (count == -1)
     {
         throw tcp_exception(strerror(errno));
@@ -155,16 +155,16 @@ int tcp_socket::write_data(const char *data, int max_size) const
     return count;
 }
 
-void tcp_socket::write_all(const char* data, int size) const
+void tcp_socket::write_all(const char* data, ssize_t size) const
 {
     if (!is_open_)
     {
         return;
     }
-    int total_count = 0;
+    ssize_t total_count = 0;
     while (total_count != size)
     {
-        int count = write_data(data, size - total_count);
+        ssize_t count = write_data(data, size - total_count);
         if (count <= 0)
         {
             break;
@@ -182,12 +182,13 @@ char* tcp_socket::read_all()
         empty[0] = '\0';
         return empty;
     }
-    int total_count = 0;
+    ssize_t total_count = 0;
     char* result = new char[RESULT_SIZE + 1];
+    strcpy(result, "");
     char buffer[CHUNK_SIZE];
     while (total_count < RESULT_SIZE) {
         memset(buffer, 0, CHUNK_SIZE);
-        int count = read_data(buffer, std::min(CHUNK_SIZE, RESULT_SIZE - total_count));
+        ssize_t count = read_data(buffer, std::min(CHUNK_SIZE, RESULT_SIZE - total_count));
         if (count <= 0)
         {
             break;

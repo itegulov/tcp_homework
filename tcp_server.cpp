@@ -15,6 +15,7 @@ tcp_server::~tcp_server()
             thread_->join();
         }
     }
+    delete thread_;
 }
 
 bool tcp_server::listen(const char * address, const char * service)
@@ -33,6 +34,7 @@ bool tcp_server::listen(const char * address, const char * service)
 
     epoll_event event;
     epoll_event *events;
+    memset(&event, 0, sizeof event);
     event.data.fd = socket->get_descriptor();
     event.events = EPOLLIN | EPOLLET;
     int status = epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, socket->get_descriptor(), &event);
@@ -70,6 +72,7 @@ void tcp_server::create_event_fd()
         throw tcp_exception("fcntl() error");
     }
     epoll_event event;
+    memset(&event, 0, sizeof event);
     event.data.fd = event_fd_;
     event.events = EPOLLIN | EPOLLET; //WUT?!
     status = epoll_ctl (epoll_fd_, EPOLL_CTL_ADD, event_fd_, &event);
@@ -82,6 +85,7 @@ void tcp_server::create_event_fd()
 void tcp_server::run(tcp_socket* socket, epoll_event* events)
 {
     epoll_event event;
+    memset(&event, 0, sizeof event);
     int status = 0;
     std::map<int, tcp_socket*> sockets;
     while (is_running_)
@@ -165,6 +169,7 @@ void tcp_server::run(tcp_socket* socket, epoll_event* events)
                     if (!accepted_socket->is_open())
                     {
                         sockets.erase(accepted_fd);
+                        delete accepted_socket;
                     }
                 }
             }
@@ -182,11 +187,12 @@ void tcp_server::run(tcp_socket* socket, epoll_event* events)
                 if (!socket->is_open())
                 {
                     sockets.erase(socket->get_descriptor());
+                    delete socket;
                 }
             }
         }
     }
-
+    new_connection.disconnect_all_slots();
     for (auto socket : sockets)
     {
         delete socket.second;
