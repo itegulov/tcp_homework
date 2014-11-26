@@ -6,7 +6,7 @@ tcp_server::~tcp_server()
     if (thread_ != nullptr && thread_->joinable())
     {
         const char * buf = "1";
-        ssize_t count = event_socket_->write_data(buf, sizeof buf);
+        ssize_t count = write(event_fd_, buf, sizeof buf);
         if (count == -1)
         {
             thread_->detach();
@@ -21,13 +21,13 @@ tcp_server::~tcp_server()
 bool tcp_server::begin_listening(const char *address, const char * service)
 {
     tcp_socket* socket = new tcp_socket();
-    socket->bind_socket(address, service);
-    socket->make_socket_non_blocking();
+    socket->bind(address, service);
+    socket->make_non_blocking();
     socket->listen(max_pending_connections_);
     epoll_fd_ = epoll_create1(0);
     if (epoll_fd_ == -1)
     {
-        socket->close_socket();
+        socket->close();
         throw tcp_exception(strerror(errno));
         return false;
     }
@@ -54,17 +54,26 @@ bool tcp_server::begin_listening(const char *address, const char * service)
 
 void tcp_server::create_event_fd()
 {
-    int event_fd_ = eventfd(0, 0);
+    event_fd_ = eventfd(0, 0);
     if (event_fd_ == -1)
     {
         throw tcp_exception(strerror(errno));
     }
-    event_socket_ = new tcp_socket(event_fd_);
-    event_socket_->make_socket_non_blocking();
+    int flags = fcntl(event_fd_, F_GETFL, 0);
+    if (flags == -1)
+    {
+        throw tcp_exception("fcntl() error");
+    }
+    flags |= O_NONBLOCK;
+    int status = fcntl(event_fd_, F_SETFL, flags);
+    if (status == -1)
+    {
+        throw tcp_exception("fcntl() error");
+    }
     epoll_event event;
     event.data.fd = event_fd_;
     event.events = EPOLLIN | EPOLLET; //WUT?!
-    int status = epoll_ctl (epoll_fd_, EPOLL_CTL_ADD, event_socket_->get_socket_descriptor(), &event);
+    status = epoll_ctl (epoll_fd_, EPOLL_CTL_ADD, event_fd_, &event);
     if (status == -1)
     {
         throw tcp_exception(strerror(errno));
@@ -79,6 +88,12 @@ void tcp_server::run(tcp_socket* socket, epoll_event* events)
     while (is_running_)
     {
         int n = epoll_wait(epoll_fd_, events, MAX_EVENTS, -1);
+        if (n == -1)
+        {
+            perror("epoll_wait");
+            //TODO: check error
+            break;
+        }
         for (int i = 0; i < n; i++)
         {
             if ((events[i].events & EPOLLERR) ||
@@ -86,7 +101,7 @@ void tcp_server::run(tcp_socket* socket, epoll_event* events)
                 (!(events[i].events & EPOLLIN)))
             {
                 //Erorr occured
-                map[events[i].data.fd]->close_socket();
+                map[events[i].data.fd]->close();
                 continue;
             }
             else if (socket->get_socket_descriptor() == events[i].data.fd)
@@ -130,7 +145,7 @@ void tcp_server::run(tcp_socket* socket, epoll_event* events)
 
                     try
                     {
-                        accepted_socket->make_socket_non_blocking();
+                        accepted_socket->make_non_blocking();
                     }
                     catch(...)
                     {
@@ -150,7 +165,7 @@ void tcp_server::run(tcp_socket* socket, epoll_event* events)
                     new_connection(accepted_socket);
                 }
             }
-            else if (event_socket_->get_socket_descriptor() == events[i].data.fd)
+            else if (event_fd_ == events[i].data.fd)
             {
                 is_running_ = false;
                 break;

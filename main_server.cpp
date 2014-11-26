@@ -1,19 +1,9 @@
 #include "tcp_server.h"
+#include "tcp_socket.h"
+
 #include <csignal>
 
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netdb.h>
-#include <arpa/inet.h>
-#include <netinet/in.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <sys/epoll.h>
-#include <sys/eventfd.h>
-#include <errno.h>
-#include <stdint.h>
-
-#include "tcp_socket.h"
+#include <signal.h>
 
 void just_get(tcp_socket *socket);
 
@@ -33,23 +23,34 @@ void just_get(tcp_socket* socket)
                             "\r\n"
                             "<h1>Nothing to see here</h1>";
     socket->write_data(response, strlen(response) + 1);
-    socket->close_socket();
+    socket->close();
 }
 
 tcp_server* server;
 
-void sig_handler(int x)
+void sig_handler(int signum)
 {
     delete server;
     exit(0);
 }
 
 int main() {
-    signal(SIGINT, sig_handler);
-    signal(SIGTERM, sig_handler);
-    signal(SIGTSTP, sig_handler);
+    struct sigaction new_action, old_action;
+    new_action.sa_handler = sig_handler;
+    sigemptyset(&new_action.sa_mask);
+    new_action.sa_flags = 0;
+    sigaction(SIGINT, nullptr, &old_action);
+    if (old_action.sa_handler != SIG_IGN)
+    {
+        sigaction(SIGINT, &new_action, nullptr);
+    }
+    sigaction(SIGTERM, nullptr, &old_action);
+    if (old_action.sa_handler != SIG_IGN)
+    {
+        sigaction(SIGTERM, &new_action, nullptr);
+    }
     server = new tcp_server();
     server->new_connection.connect(&just_print);
-    server->begin_listening("127.0.0.1", "20627");
+    server->begin_listening("127.0.0.1", "20624");
     sleep(1000);
 }

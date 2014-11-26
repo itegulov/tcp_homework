@@ -36,7 +36,7 @@ private:
     static const int MAX_EVENTS = 64;
     int max_pending_connections_ = 16;
     int epoll_fd_;
-    tcp_socket* event_socket_;
+    int event_fd_;
     bool is_running_ = false;
     std::thread* thread_;
     void create_event_fd();

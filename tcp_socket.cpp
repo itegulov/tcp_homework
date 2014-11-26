@@ -14,15 +14,15 @@ tcp_socket::tcp_socket(int fd)
 
 tcp_socket::~tcp_socket()
 {
-    close_socket();
+    close();
 }
 
-void tcp_socket::close_socket()
+void tcp_socket::close()
 {
     if (is_open_)
     {
         is_open_ = false;
-        close(fd_);
+        ::close(fd_);
     }
 }
 
@@ -40,7 +40,7 @@ bool tcp_socket::is_open()
     return is_open_;
 }
 
-void tcp_socket::bind_socket(const char *address, const char *service)
+void tcp_socket::bind(const char *address, const char *service)
 {
     int status = 0;
     addrinfo hints;
@@ -67,14 +67,14 @@ void tcp_socket::bind_socket(const char *address, const char *service)
             continue;
         }
 
-        status = bind(socket_fd, servinfo->ai_addr, servinfo->ai_addrlen);
+        status = ::bind(socket_fd, servinfo->ai_addr, servinfo->ai_addrlen);
 
         if (status == 0)
         {
             break;
         }
 
-        close(socket_fd);
+        ::close(socket_fd);
     }
 
     if (rp == nullptr)
@@ -87,7 +87,7 @@ void tcp_socket::bind_socket(const char *address, const char *service)
     is_open_ = true;
 }
 
-void tcp_socket::make_socket_non_blocking()
+void tcp_socket::make_non_blocking()
 {
     int flags = fcntl(fd_, F_GETFL, 0);
     if (flags == -1)
@@ -126,14 +126,14 @@ int tcp_socket::read_data(char *data, int max_size)
     {
         if (errno != EAGAIN)
         {
-            close_socket();
+            close();
             throw tcp_exception(strerror(errno));
         }
         return -1;
     }
     else if (count == 0)
     {
-        close_socket();
+        close();
         return 0;
     }
     return count;
