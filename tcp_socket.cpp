@@ -14,6 +14,8 @@ tcp_socket::tcp_socket(int fd)
 
 tcp_socket::~tcp_socket()
 {
+    printf("Delete socket\n");
+    fflush(stdout);
     close();
 }
 
@@ -21,8 +23,10 @@ void tcp_socket::close()
 {
     if (is_open_)
     {
-        is_open_ = false;
         ::close(fd_);
+        printf("Close socket\n");
+        fflush(stdout);
+        is_open_ = false;
     }
 }
 
@@ -80,6 +84,12 @@ void tcp_socket::bind(const char *address, const char *service)
     if (rp == nullptr)
     {
         throw tcp_exception("Couldn't bind to address");
+    }
+    int option = 1;
+    if (setsockopt(socket_fd, SOL_SOCKET, SO_REUSEPORT | SO_REUSEADDR, (char *)&option, sizeof option) < 0)
+    {
+        ::close(socket_fd);
+        throw tcp_exception(strerror(errno));
     }
 
     freeaddrinfo(servinfo);

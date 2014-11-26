@@ -18,7 +18,7 @@ tcp_server::~tcp_server()
     }
 }
 
-bool tcp_server::begin_listening(const char *address, const char * service)
+bool tcp_server::begin_listening(const char * address, const char * service)
 {
     tcp_socket* socket = new tcp_socket();
     socket->bind(address, service);
@@ -167,6 +167,7 @@ void tcp_server::run(tcp_socket* socket, epoll_event* events)
             }
             else if (event_fd_ == events[i].data.fd)
             {
+                //Signal to terminate has arrived
                 is_running_ = false;
                 break;
             }
@@ -177,17 +178,30 @@ void tcp_server::run(tcp_socket* socket, epoll_event* events)
             }
         }
     }
+    for (auto socket : map)
+    {
+        socket.second->close();
+    }
     free(events);
+    close(epoll_fd_);
+    close(event_fd_);
     delete socket;
 }
 
 void tcp_server::stop_listening()
 {
-    is_running_ = false;
-    thread_->join();
+    if (is_running_)
+    {
+        is_running_ = false;
+        thread_->join();
+    }
 }
 
 void tcp_server::set_max_pending_connections(int max)
 {
+    if (max < 0)
+    {
+        throw std::runtime_error("Max pending connections must be >= 0");
+    }
     max_pending_connections_ = max;
 }

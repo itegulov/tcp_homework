@@ -47,7 +47,7 @@ void tcp_client::tcp_connect(const char * address, const char * service)
     printf("Client: connecting to %s\n", s);
     fflush(stdout);
 
-    freeaddrinfo(servinfo); // all done with this structure
+    freeaddrinfo(servinfo);
     on_connect(socket);
     delete socket;
     close(socket_fd);
