@@ -25,7 +25,6 @@ void tcp_server::start(const char * address, const char * service)
         socket->close();
         throw tcp_exception(strerror(errno));
     }
-
     epoll_event event;
     epoll_event *events;
     memset(&event, 0, sizeof event);
@@ -101,8 +100,10 @@ void tcp_server::run(tcp_socket* socket, epoll_event* events)
             else if (socket->get_descriptor() == events[i].data.fd)
             {
                 //Notifiaction on main socket
+
                 while (true)
                 {
+
                     sockaddr in_addr;
                     socklen_t in_len = sizeof in_addr;
 
@@ -178,6 +179,7 @@ void tcp_server::run(tcp_socket* socket, epoll_event* events)
                         }
                     }
                 }
+
             }
             else if (event_fd_ == events[i].data.fd)
             {
@@ -188,6 +190,7 @@ void tcp_server::run(tcp_socket* socket, epoll_event* events)
             else
             {
                 //Read data
+
                 tcp_socket* socket = sockets[events[i].data.fd];
                 int cur_fd = socket->get_descriptor();
                 socket_deleted = false;
@@ -220,6 +223,7 @@ void tcp_server::run(tcp_socket* socket, epoll_event* events)
                         delete socket;
                     }
                 }
+
             }
         }
     }

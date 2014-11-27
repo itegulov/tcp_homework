@@ -17,10 +17,13 @@ void just_print(tcp_socket* socket)
 
 void just_get(tcp_socket* socket)
 {
-    char* s = socket->read_all();
-    std::cout << s << std::endl;
-    socket->write_all(s, strlen(s));
-    delete[] s;
+    const char* s = socket->read_all();
+    if (socket->is_open())
+    {
+        std::cout << s << std::endl;
+        socket->write_all(s, strlen(s));
+        delete[] s;
+    }
     throw std::runtime_error("test exception");
 }
 

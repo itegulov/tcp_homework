@@ -25,7 +25,7 @@ void tcp_socket::close()
 {
     if (is_open_)
     {
-        ::close(fd_);
+        assert (::close(fd_) == 0);
         is_open_ = false;
     }
 }
@@ -74,7 +74,7 @@ void tcp_socket::bind(const char *address, const char *service)
             break;
         }
 
-        ::close(socket_fd);
+        assert (::close(socket_fd) == 0);
     }
 
     if (rp == nullptr)
@@ -84,7 +84,7 @@ void tcp_socket::bind(const char *address, const char *service)
     int option = 1;
     if (setsockopt(socket_fd, SOL_SOCKET, SO_REUSEPORT | SO_REUSEADDR, (char *)&option, sizeof option) < 0)
     {
-        ::close(socket_fd);
+        assert (::close(socket_fd) == 0);
         throw tcp_exception(strerror(errno));
     }
 
@@ -178,13 +178,11 @@ void tcp_socket::write_all(const char* data, ssize_t size) const
     }
 }
 
-char* tcp_socket::read_all()
+const char* tcp_socket::read_all()
 {
     if (!is_open_)
     {
-        char * empty = new char[1];
-        empty[0] = '\0';
-        return empty;
+        return "";
     }
     ssize_t total_count = 0;
     char* result = new char[RESULT_SIZE + 1];

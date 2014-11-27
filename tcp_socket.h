@@ -9,6 +9,8 @@
 #include <fcntl.h>
 
 #include "tcp_exception.h"
+#include "tcp_server.h"
+#include "epoll_handler.h"
 
 #include <boost/signals2.hpp>
 
@@ -31,7 +33,7 @@ public:
 
     ssize_t read_data(char* data, ssize_t max_size);
     ssize_t write_data(const char* data, ssize_t max_size) const;
-    char* read_all();
+    const char* read_all();
     void write_all(const char* data, ssize_t size) const;
 
     boost::signals2::signal<void (tcp_socket*)> on_read;

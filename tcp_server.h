@@ -23,6 +23,7 @@
 
 #include "tcp_socket.h"
 #include "tcp_exception.h"
+#include "epoll_handler.h"
 
 struct tcp_server
 {
