@@ -29,20 +29,26 @@ struct tcp_server
     friend struct tcp_socket;
 public:
     ~tcp_server();
-    bool listen(const char * address, const char * service);
-    void stop_listening();
+    void start(const char * address, const char * service);
+    void stop();
     void set_max_pending_connections(int max);
     boost::signals2::signal<void (tcp_socket*)> new_connection;
+    boost::signals2::signal<void (const std::exception&)> on_error;
 private:
+    static bool socket_deleted;
     static const int MAX_EVENTS = 64;
     static constexpr const char * END_STR = "1";
+
     int max_pending_connections_ = 16;
     int epoll_fd_;
     int event_fd_;
     bool is_running_ = false;
+
     std::thread* thread_;
+
     void create_event_fd();
     void run(tcp_socket* socket_fd, epoll_event* events);
 };
+
 #endif //TCP_SERVER_H
 

@@ -18,9 +18,16 @@ void just_print(tcp_socket* socket)
 void just_get(tcp_socket* socket)
 {
     char* s = socket->read_all();
-    std::cout << s;
+    std::cout << s << std::endl;
     socket->write_all(s, strlen(s));
     delete[] s;
+    throw std::runtime_error("test exception");
+}
+
+void on_error(const std::exception& e)
+{
+    printf("%s\n", e.what());
+    fflush(stdout);
 }
 
 tcp_server* server;
@@ -48,7 +55,8 @@ int main() {
     }
     server = new tcp_server();
     server->new_connection.connect(&just_print);
-    server->listen("127.0.0.1", "20619");
+    server->on_error.connect(&on_error);
+    server->start("127.0.0.1", "20619");
     sleep(10);
     delete server;
 }

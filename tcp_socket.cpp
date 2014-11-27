@@ -1,4 +1,7 @@
 #include "tcp_socket.h"
+#include "tcp_server.h"
+
+bool tcp_server::socket_deleted;
 
 tcp_socket::tcp_socket()
 {
@@ -14,6 +17,7 @@ tcp_socket::tcp_socket(int fd)
 
 tcp_socket::~tcp_socket()
 {
+    tcp_server::socket_deleted = true;
     close();
 }
 
@@ -138,6 +142,7 @@ ssize_t tcp_socket::read_data(char *data, ssize_t max_size)
         close();
         return 0;
     }
+    data[count] = '\0';
     return count;
 }
 
@@ -164,12 +169,11 @@ void tcp_socket::write_all(const char* data, ssize_t size) const
     ssize_t total_count = 0;
     while (total_count != size)
     {
-        ssize_t count = write_data(data, size - total_count);
+        ssize_t count = write_data(data + total_count, size - total_count);
         if (count <= 0)
         {
             break;
         }
-        data += count;
         total_count += count;
     }
 }
@@ -199,5 +203,6 @@ char* tcp_socket::read_all()
             total_count += count;
         }
     }
+    result[total_count] = '\0';
     return result;
 }

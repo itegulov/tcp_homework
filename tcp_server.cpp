@@ -6,19 +6,14 @@ tcp_server::~tcp_server()
     if (thread_ != nullptr && thread_->joinable())
     {
         ssize_t count = write(event_fd_, END_STR, sizeof END_STR);
-        if (count == -1)
-        {
-            thread_->detach();
-        }
-        else
-        {
+        if (count > 0) {
             thread_->join();
         }
     }
     delete thread_;
 }
 
-bool tcp_server::listen(const char * address, const char * service)
+void tcp_server::start(const char * address, const char * service)
 {
     tcp_socket* socket = new tcp_socket();
     socket->bind(address, service);
@@ -29,7 +24,6 @@ bool tcp_server::listen(const char * address, const char * service)
     {
         socket->close();
         throw tcp_exception(strerror(errno));
-        return false;
     }
 
     epoll_event event;
@@ -41,16 +35,13 @@ bool tcp_server::listen(const char * address, const char * service)
     if (status == -1)
     {
         throw tcp_exception(strerror(errno));
-        return false;
     }
 
     create_event_fd();
 
-    //Buffer where events are returned
     events = (epoll_event*) calloc(MAX_EVENTS, sizeof event);
     is_running_ = true;
     thread_ = new std::thread(&tcp_server::run, this, socket, events);
-    return true;
 }
 
 void tcp_server::create_event_fd()
@@ -74,7 +65,7 @@ void tcp_server::create_event_fd()
     epoll_event event;
     memset(&event, 0, sizeof event);
     event.data.fd = event_fd_;
-    event.events = EPOLLIN | EPOLLET; //WUT?!
+    event.events = EPOLLIN | EPOLLET;
     status = epoll_ctl (epoll_fd_, EPOLL_CTL_ADD, event_fd_, &event);
     if (status == -1)
     {
@@ -91,10 +82,8 @@ void tcp_server::run(tcp_socket* socket, epoll_event* events)
     while (is_running_)
     {
         int n = epoll_wait(epoll_fd_, events, MAX_EVENTS, -1);
-        if (n == -1)
+        if (n == -1 && errno == EINTR)
         {
-            perror("epoll_wait");
-            //TODO: check error
             break;
         }
         for (int i = 0; i < n; i++)
@@ -104,7 +93,9 @@ void tcp_server::run(tcp_socket* socket, epoll_event* events)
                 (!(events[i].events & EPOLLIN)))
             {
                 //Erorr occured
-                sockets[events[i].data.fd]->close();
+                tcp_socket* socket = sockets[events[i].data.fd];
+                sockets.erase(socket->get_descriptor());
+                delete socket;
                 continue;
             }
             else if (socket->get_descriptor() == events[i].data.fd)
@@ -126,31 +117,18 @@ void tcp_server::run(tcp_socket* socket, epoll_event* events)
                         }
                         else
                         {
-                            perror("accept");
-                            //TODO: check error
+                            //Error occured
+                            on_error(tcp_exception(strerror(errno)));
                             break;
                         }
                     }
                     tcp_socket* accepted_socket = new tcp_socket(accepted_fd);
 
-                    char hbuf[NI_MAXHOST], sbuf[NI_MAXSERV];
-
-                    status = getnameinfo (&in_addr, in_len,
-                                           hbuf, sizeof hbuf,
-                                           sbuf, sizeof sbuf,
-                                           NI_NUMERICHOST | NI_NUMERICSERV);
-                    if (status == 0)
-                    {
-                        printf("Accepted connection on descriptor %d "
-                                "(host=%s, port=%s)\n", accepted_socket->get_descriptor(), hbuf, sbuf);
-                        fflush(stdout);
-                    }
-
                     try
                     {
                         accepted_socket->make_non_blocking();
                     }
-                    catch(...)
+                    catch(tcp_exception)
                     {
                         continue;
                     }
@@ -158,18 +136,46 @@ void tcp_server::run(tcp_socket* socket, epoll_event* events)
                     event.data.fd = accepted_socket->get_descriptor();
                     event.events = EPOLLIN | EPOLLET;
                     status = epoll_ctl (epoll_fd_, EPOLL_CTL_ADD, accepted_socket->get_descriptor(), &event);
+
                     if (status == -1)
                     {
-                        perror ("epoll_ctl");
-                        //TODO: check error
+                        //Couldn't add to epoll
+                        on_error(tcp_exception(strerror(errno)));
+                        delete accepted_socket;
                         continue;
                     }
+
                     sockets[accepted_fd] = accepted_socket;
-                    new_connection(accepted_socket);
-                    if (!accepted_socket->is_open())
+                    socket_deleted = false;
+                    std::exception_ptr eptr;
+                    try {
+                        new_connection(accepted_socket);
+                    }
+                    catch (...)
+                    {
+                        eptr = std::current_exception();
+                    }
+
+                    if (eptr != nullptr)
+                    {
+                        try {
+                            std::rethrow_exception(eptr);
+                        } catch(const std::exception& e) {
+                            on_error(e);
+                        }
+                    }
+
+                    if (socket_deleted)
                     {
                         sockets.erase(accepted_fd);
-                        delete accepted_socket;
+                    }
+                    else
+                    {
+                        if (!accepted_socket->is_open())
+                        {
+                            sockets.erase(accepted_fd);
+                            delete accepted_socket;
+                        }
                     }
                 }
             }
@@ -183,11 +189,36 @@ void tcp_server::run(tcp_socket* socket, epoll_event* events)
             {
                 //Read data
                 tcp_socket* socket = sockets[events[i].data.fd];
-                socket->on_read(socket);
-                if (!socket->is_open())
+                int cur_fd = socket->get_descriptor();
+                socket_deleted = false;
+                std::exception_ptr eptr;
+                try {
+                    socket->on_read(socket);
+                }
+                catch (...)
                 {
-                    sockets.erase(socket->get_descriptor());
-                    delete socket;
+                    eptr = std::current_exception();
+                }
+
+                if (eptr != nullptr)
+                {
+                    try {
+                        std::rethrow_exception(eptr);
+                    } catch(const std::exception& e) {
+                        on_error(e);
+                    }
+                }
+                if (socket_deleted)
+                {
+                    sockets.erase(cur_fd);
+                }
+                else
+                {
+                    if (!socket->is_open())
+                    {
+                        sockets.erase(socket->get_descriptor());
+                        delete socket;
+                    }
                 }
             }
         }
@@ -203,12 +234,17 @@ void tcp_server::run(tcp_socket* socket, epoll_event* events)
     delete socket;
 }
 
-void tcp_server::stop_listening()
+void tcp_server::stop()
 {
     if (is_running_)
     {
         is_running_ = false;
-        thread_->join();
+        if (thread_->joinable()) {
+            ssize_t count = write(event_fd_, END_STR, sizeof END_STR);
+            if (count > 0) {
+                thread_->join();
+            }
+        }
     }
 }
 

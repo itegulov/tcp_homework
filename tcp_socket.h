@@ -15,6 +15,7 @@
 #include <cstring>
 
 struct tcp_socket {
+    friend struct tcp_server;
 public:
     tcp_socket();
     tcp_socket(int fd);
