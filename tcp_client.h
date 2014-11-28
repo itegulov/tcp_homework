@@ -14,10 +14,6 @@
 
 #include "boost/signals2.hpp"
 
-#include "cstdio"
-#include "cstring"
-#include "cstdlib"
-
 struct tcp_client {
 public:
     void tcp_connect(const char * address, const char * service);

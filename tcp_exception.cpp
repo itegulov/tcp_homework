@@ -1,10 +1,10 @@
 #include "tcp_exception.h"
 const char* tcp_exception::what() const throw()
 {
-    return description;
+    return description.c_str();
 }
 
-tcp_exception::tcp_exception(const char * description)
+tcp_exception::tcp_exception(std::string description)
 {
     this->description = description;
 }

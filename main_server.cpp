@@ -22,9 +22,8 @@ void just_get(tcp_socket* socket)
     {
         std::cout << s << std::endl;
         socket->write_all(s, strlen(s));
-        delete[] s;
     }
-    throw std::runtime_error("test exception");
+    delete[] s;
 }
 
 void on_error(const std::exception& e)
@@ -34,14 +33,15 @@ void on_error(const std::exception& e)
 }
 
 tcp_server* server;
+epoll_handler* handler;
 
 void sig_handler(int signum)
 {
-    delete server;
-    exit(0);
+    handler->stop();
 }
 
-int main() {
+int main()
+{
     struct sigaction new_action, old_action;
     new_action.sa_handler = sig_handler;
     sigemptyset(&new_action.sa_mask);
@@ -56,10 +56,13 @@ int main() {
     {
         sigaction(SIGTERM, &new_action, nullptr);
     }
+
+    handler = new epoll_handler();
     server = new tcp_server();
     server->new_connection.connect(&just_print);
     server->on_error.connect(&on_error);
-    server->start("127.0.0.1", "20619");
-    sleep(10);
+    server->start("127.0.0.1", "20620", handler);
+    handler->start();
+    delete handler;
     delete server;
 }

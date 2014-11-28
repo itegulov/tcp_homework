@@ -1,12 +1,13 @@
 #ifndef TCP_EXCEPTION_H
 #define TCP_EXCEPTION_H
 #include <exception>
+#include <string>
 struct tcp_exception: public std::exception
 {
 public:
-    tcp_exception(const char * description);
+    tcp_exception(std::string description);
     virtual const char* what() const throw();
 private:
-    const char * description;
+    std::string description;
 };
 #endif //TCP_EXCEPTION_H

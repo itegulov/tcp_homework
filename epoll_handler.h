@@ -27,15 +27,18 @@ struct epoll_handler
 {
 public:
     epoll_handler();
+    ~epoll_handler();
     void start();
+    void stop();
     void add(tcp_socket* socket);
 private:
     static const int MAX_EVENTS = 64;
+    static constexpr const char* END_STR = "1";
+
     std::map<int, tcp_socket*> sockets;
     epoll_event* events;
     int event_fd_;
     int epoll_fd_;
-    static bool socket_deleted;
     void create_event_fd();
 };
 

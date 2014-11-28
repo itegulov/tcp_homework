@@ -1,32 +1,27 @@
 #include "tcp_socket.h"
 #include "tcp_server.h"
 
-bool tcp_server::socket_deleted;
-
 tcp_socket::tcp_socket()
 {
     fd_ = -1;
-    is_open_ = false;
 }
 
 tcp_socket::tcp_socket(int fd)
 {
     fd_ = fd;
-    is_open_ = true;
 }
 
 tcp_socket::~tcp_socket()
 {
-    tcp_server::socket_deleted = true;
     close();
 }
 
 void tcp_socket::close()
 {
-    if (is_open_)
+    if (is_open())
     {
         assert (::close(fd_) == 0);
-        is_open_ = false;
+        fd_ = -1;
     }
 }
 
@@ -37,7 +32,7 @@ int tcp_socket::get_descriptor() const
 
 bool tcp_socket::is_open() const
 {
-    return is_open_;
+    return fd_ != -1;
 }
 
 void tcp_socket::bind(const char *address, const char *service)
@@ -90,7 +85,6 @@ void tcp_socket::bind(const char *address, const char *service)
 
     freeaddrinfo(servinfo);
     fd_ = socket_fd;
-    is_open_ = true;
 }
 
 void tcp_socket::make_non_blocking()
@@ -110,7 +104,7 @@ void tcp_socket::make_non_blocking()
 
 void tcp_socket::listen(int max_pending_connections)
 {
-    if (!is_open_)
+    if (!is_open())
     {
         throw tcp_exception("Socket wasn't opened");
     }
@@ -123,7 +117,7 @@ void tcp_socket::listen(int max_pending_connections)
 
 ssize_t tcp_socket::read_data(char *data, ssize_t max_size)
 {
-    if (!is_open_)
+    if (!is_open())
     {
         return 0;
     }
@@ -148,7 +142,7 @@ ssize_t tcp_socket::read_data(char *data, ssize_t max_size)
 
 ssize_t tcp_socket::write_data(const char *data, ssize_t max_size) const
 {
-    if (!is_open_)
+    if (!is_open())
     {
         return 0;
     }
@@ -162,7 +156,7 @@ ssize_t tcp_socket::write_data(const char *data, ssize_t max_size) const
 
 void tcp_socket::write_all(const char* data, ssize_t size) const
 {
-    if (!is_open_)
+    if (!is_open())
     {
         return;
     }
@@ -180,7 +174,7 @@ void tcp_socket::write_all(const char* data, ssize_t size) const
 
 const char* tcp_socket::read_all()
 {
-    if (!is_open_)
+    if (!is_open())
     {
         return "";
     }

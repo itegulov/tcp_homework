@@ -16,6 +16,8 @@
 
 #include <cstring>
 
+struct epoll_handler;
+
 struct tcp_socket {
     friend struct tcp_server;
 public:
@@ -37,12 +39,13 @@ public:
     void write_all(const char* data, ssize_t size) const;
 
     boost::signals2::signal<void (tcp_socket*)> on_read;
+    boost::signals2::signal<void (tcp_socket*, epoll_handler*)> on_epoll;
 private:
     static const ssize_t CHUNK_SIZE = 512;
     static const ssize_t RESULT_SIZE = 8192;
     static constexpr const char* EMPTY_STR = "";
+
     int fd_;
-    bool is_open_= false;
 };
 
 #endif //TCP_SOCKET_H

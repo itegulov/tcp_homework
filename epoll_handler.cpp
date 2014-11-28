@@ -1,18 +1,23 @@
 #include "epoll_handler.h"
 
-bool epoll_handler::socket_deleted;
-
 epoll_handler::epoll_handler()
+{
+    epoll_fd_ = epoll_create1(0);
+    if (epoll_fd_ == -1)
+    {
+        throw std::runtime_error(strerror(errno));
+    }
+    create_event_fd();
+}
+
+epoll_handler::~epoll_handler()
 {
 
 }
 
 void epoll_handler::start()
 {
-    create_event_fd();
-    epoll_event event;
-    memset(&event, 0, sizeof event);
-    events = (epoll_event*) calloc(MAX_EVENTS, sizeof event);
+    events = (epoll_event*) calloc(MAX_EVENTS, sizeof (epoll_event));
     while (true)
     {
         int n = epoll_wait(epoll_fd_, events, MAX_EVENTS, -1);
@@ -27,7 +32,6 @@ void epoll_handler::start()
                 (!(events[i].events & EPOLLIN)))
             {
                 //Erorr occured
-
                 tcp_socket* socket = sockets[events[i].data.fd];
                 sockets.erase(socket->get_descriptor());
                 delete socket;
@@ -41,20 +45,28 @@ void epoll_handler::start()
             {
                 tcp_socket* socket = sockets[events[i].data.fd];
                 socket->on_epoll(socket, this);
-                if (socket_deleted)
+                if (!socket->is_open())
                 {
                     sockets.erase(events[i].data.fd);
-                }
-                else
-                {
-                    if (!socket->is_open())
-                    {
-                        sockets.erase(events[i].data.fd);
-                        delete socket;
-                    }
+                    delete socket;
                 }
             }
         }
+    }
+    ::close(epoll_fd_);
+    for (auto socket : sockets)
+    {
+        delete socket.second;
+    }
+    free(events);
+}
+
+void epoll_handler::stop()
+{
+    ssize_t count = -1;
+    while (count == -1)
+    {
+        count = write(event_fd_, END_STR, sizeof END_STR);
     }
 }
 
@@ -70,6 +82,8 @@ void epoll_handler::add(tcp_socket* socket)
         throw std::runtime_error(strerror(errno));
     }
     sockets[socket->get_descriptor()] = socket;
+    printf("Added %d\n", socket->get_descriptor());
+    fflush(stdout);
 }
 
 void epoll_handler::create_event_fd()
