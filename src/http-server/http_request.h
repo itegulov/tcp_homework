@@ -9,17 +9,17 @@
 
 class http_request
 {
-    friend struct http_connection;
-public:
-    http_request(http_connection* connection);
-
-    enum http_method {
+    enum http_method
+    {
         HTTP_DELETE = 0,
         HTTP_GET,
         HTTP_HEAD,
         HTTP_POST,
         HTTP_PUT
     };
+    friend struct http_connection;
+public:
+    http_request(http_connection* connection);
 
     http_method get_method() const;
     const std::string get_url() const;
@@ -27,8 +27,17 @@ public:
     std::map<std::string, std::string> get_headers() const;
     const std::string get_body() const;
 
-    void connect_on_data(void (*function)(const char*, int));
-    void connect_on_end(void (*function)());
+    template<typename T>
+    void connect_on_data(T function)
+    {
+        on_data.connect(function);
+    }
+
+    template<typename T>
+    void connect_on_end(T function)
+    {
+        on_end.connect(function);
+    }
 private:
     boost::signals2::signal<void (const char *, int)> on_data;
     boost::signals2::signal<void ()> on_end;

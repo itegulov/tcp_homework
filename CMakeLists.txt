@@ -13,6 +13,7 @@ add_library(tcp_client STATIC src/tcp-server/tcp_client.cpp src/tcp-server/tcp_s
 add_library(http_response STATIC src/http-server/http_response.cpp)
 add_library(http_request STATIC src/http-server/http_request.cpp)
 add_library(http_connection STATIC src/http-server/http_connection.cpp)
+add_library(http_server STATIC src/http-server/http_server.cpp)
 add_library(http_parser STATIC http-parser/http_parser.c)
 add_custom_target(http_server_api SOURCES src/http-server/http_server_api.h)
 add_executable(tcp_server_exec src/examples/main_server.cpp)

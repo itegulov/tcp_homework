@@ -18,6 +18,8 @@ http_connection::http_connection(tcp_socket *socket):
     parser_settings_->on_message_complete = message_complete;
 
     parser_->data = this;
+
+    socket_->connect_on_read(boost::bind(&http_connection::parse_request, this, _1));
 }
 
 http_connection::~http_connection()
@@ -106,7 +108,7 @@ int http_connection::headers_complete(http_parser *parser)
 
     //TODO: some more slots?
 
-    connection->new_connection(connection->request_, new http_response());
+    connection->new_connection(connection->request_, new http_response(connection));
     return 0;
 }
 
@@ -128,6 +130,10 @@ int http_connection::message_complete(http_parser *parser)
     connection->request_->on_end();
     return 0;
 }
+
+/************************
+ * Non-static Callbacks *
+ ************************/
 
 void http_connection::parse_request(tcp_socket *socket_)
 {

@@ -1,5 +1,37 @@
 #include "http_request.h"
 
+/***********
+ * Getters *
+ ***********/
+
+http_request::http_method http_request::get_method() const
+{
+    return method_;
+}
+
+const std::string http_request::get_url() const
+{
+    return url_;
+}
+
+const std::string http_request::get_http_version() const
+{
+    return http_version_;
+}
+
+std::map<std::string, std::string> http_request::get_headers() const
+{
+    return headers_;
+}
+
+const std::string http_request::get_body() const
+{
+    //TODO: implement (do i need this?)
+}
+
+/***********
+ * Setters *
+ ***********/
 
 void http_request::set_finished(bool finished)
 {
