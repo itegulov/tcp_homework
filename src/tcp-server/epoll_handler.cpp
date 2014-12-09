@@ -1,5 +1,7 @@
 #include "epoll_handler.h"
 
+//TODO: unique_ptr
+
 epoll_handler::epoll_handler()
 {
     epoll_fd_ = epoll_create1(0);
@@ -10,14 +12,10 @@ epoll_handler::epoll_handler()
     create_event_fd();
 }
 
-epoll_handler::~epoll_handler()
-{
-
-}
-
 void epoll_handler::start()
 {
-    events = (epoll_event*) calloc(MAX_EVENTS, sizeof (epoll_event));
+    epoll_event events[MAX_EVENTS];
+    memset(events, 0, sizeof events);
     while (true)
     {
         int n = epoll_wait(epoll_fd_, events, MAX_EVENTS, -1);
@@ -44,21 +42,16 @@ void epoll_handler::start()
             else
             {
                 tcp_socket* socket = sockets[events[i].data.fd];
-                socket->on_epoll(socket, this);
-                if (!socket->is_open())
-                {
-                    sockets.erase(events[i].data.fd);
-                    delete socket;
-                }
+                socket->on_epoll(socket);
             }
         }
     }
     ::close(epoll_fd_);
+    //TODO: remove it
     for (auto socket : sockets)
     {
         delete socket.second;
     }
-    free(events);
 }
 
 void epoll_handler::stop()
@@ -82,9 +75,22 @@ void epoll_handler::add(tcp_socket* socket)
         throw std::runtime_error(strerror(errno));
     }
     sockets[socket->get_descriptor()] = socket;
-    printf("Added %d\n", socket->get_descriptor());
-    fflush(stdout);
 }
+
+void epoll_handler::remove(tcp_socket *socket)
+{
+    epoll_event event;
+    memset(&event, 0, sizeof event);
+    event.data.fd = socket->get_descriptor();
+    event.events = EPOLLIN | EPOLLET;
+    int status = epoll_ctl(epoll_fd_, EPOLL_CTL_DEL, socket->get_descriptor(), &event);
+    if (status == -1)
+    {
+        throw std::runtime_error(strerror(errno));
+    }
+    sockets.erase(socket->get_descriptor());
+}
+
 
 void epoll_handler::create_event_fd()
 {
@@ -104,5 +110,5 @@ void epoll_handler::create_event_fd()
     {
         throw std::runtime_error("fcntl() error");
     }
-    add(new tcp_socket(event_fd_));
+    add(new tcp_socket(event_fd_, nullptr));
 }

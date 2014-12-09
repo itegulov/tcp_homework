@@ -17,12 +17,14 @@
 #include <cstring>
 
 struct epoll_handler;
+struct tcp_server;
 
 struct tcp_socket {
     friend struct tcp_server;
+    friend struct epoll_handler;
 public:
-    tcp_socket();
-    tcp_socket(int fd);
+    tcp_socket(tcp_server* server);
+    tcp_socket(int fd, tcp_server* server);
 
     ~tcp_socket();
 
@@ -38,12 +40,26 @@ public:
     const char* read_all();
     void write_all(const char* data, ssize_t size) const;
 
-    boost::signals2::signal<void (tcp_socket*)> on_read;
-    boost::signals2::signal<void (tcp_socket*, epoll_handler*)> on_epoll;
+    template<typename T>
+    void connect_on_read(T function) {
+        on_read.connect(function);
+    }
+
+    template<typename T>
+    void connect_on_epoll(T function)
+    {
+        on_epoll.connect(function);
+    }
+
 private:
     static const ssize_t CHUNK_SIZE = 512;
     static const ssize_t RESULT_SIZE = 8192;
     static constexpr const char* EMPTY_STR = "";
+
+    tcp_server* server;
+
+    boost::signals2::signal<void (tcp_socket*)> on_read;
+    boost::signals2::signal<void (tcp_socket*)> on_epoll;
 
     int fd_;
 };

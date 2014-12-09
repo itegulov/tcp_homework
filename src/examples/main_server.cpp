@@ -12,7 +12,7 @@ void just_print(tcp_socket* socket)
 {
     printf("accepted_fd: %d\n", socket->get_descriptor());
     fflush(stdout);
-    socket->on_read.connect(&just_get);
+    socket->connect_on_read(&just_get);
 }
 
 void just_get(tcp_socket* socket)
@@ -32,12 +32,11 @@ void on_error(const std::exception& e)
     fflush(stdout);
 }
 
-tcp_server* server;
-epoll_handler* handler;
+epoll_handler handler;
 
 void sig_handler(int signum)
 {
-    handler->stop();
+    handler.stop();
 }
 
 int main()
@@ -56,13 +55,8 @@ int main()
     {
         sigaction(SIGTERM, &new_action, nullptr);
     }
-
-    handler = new epoll_handler();
-    server = new tcp_server();
-    server->new_connection.connect(&just_print);
-    server->on_error.connect(&on_error);
-    server->start("127.0.0.1", "20620", handler);
-    handler->start();
-    delete handler;
-    delete server;
+    tcp_server server("127.0.0.1", "20620", &handler, 20);
+    server.connect_on_connection(&just_print);
+    server.connect_on_error(&on_error);
+    handler.start();
 }

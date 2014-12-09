@@ -8,7 +8,6 @@ void *tcp_client::get_in_addr(sockaddr *sa)
 void tcp_client::tcp_connect(const char * address, const char * service)
 {
     addrinfo hints, *servinfo, *p;
-    char s[INET_ADDRSTRLEN];
     memset(&hints, 0, sizeof hints);
     hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_STREAM;
@@ -39,16 +38,8 @@ void tcp_client::tcp_connect(const char * address, const char * service)
     if (p == NULL) {
         throw tcp_exception("Failed to connect");
     }
-
-    tcp_socket * socket = new tcp_socket(socket_fd);
-
-    inet_ntop(p->ai_family, get_in_addr((sockaddr *)p->ai_addr),
-                s, sizeof s);
-    printf("Client: connecting to %s\n", s);
-    fflush(stdout);
+    tcp_socket socket(socket_fd, nullptr);
 
     freeaddrinfo(servinfo);
-    on_connect(socket);
-    delete socket;
-    close(socket_fd);
+    on_connect(&socket);
 }

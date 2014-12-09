@@ -5,17 +5,18 @@ tcp_server::~tcp_server()
     //TODO: implement
 }
 
-void tcp_server::start(const char * address, const char * service, epoll_handler* handler)
+tcp_server::tcp_server(const char * address, const char * service, epoll_handler* handler, int max_pending_connections)
 {
-    main_socket = new tcp_socket();
+    tcp_socket* main_socket = new tcp_socket(this);
     main_socket->bind(address, service);
     main_socket->make_non_blocking();
-    main_socket->listen(max_pending_connections_);
-    main_socket->on_epoll.connect(boost::bind(&tcp_server::accept_connection, this, _1, _2));
+    main_socket->listen(max_pending_connections);
+    main_socket->on_epoll.connect(boost::bind(&tcp_server::accept_connection, this, _1));
+    this->handler = handler;
     handler->add(main_socket);
 }
 
-void tcp_server::accept_connection(tcp_socket* socket, epoll_handler* handler)
+void tcp_server::accept_connection(tcp_socket* socket)
 {
     while (true)
     {
@@ -38,20 +39,22 @@ void tcp_server::accept_connection(tcp_socket* socket, epoll_handler* handler)
                 break;
             }
         }
-        tcp_socket* accepted_socket = new tcp_socket(accepted_fd);
+        tcp_socket* accepted_socket = new tcp_socket(accepted_fd, socket->server);
 
         try
         {
             accepted_socket->make_non_blocking();
         }
-        catch(tcp_exception)
+        catch(const tcp_exception& e)
         {
+            on_error(tcp_exception("couldn't make socket non blocking"));
+            delete accepted_socket;
             continue;
         }
 
-        accepted_socket->on_epoll.connect(boost::bind(&tcp_server::proceed_connection, this, _1, _2));
+        accepted_socket->on_epoll.connect(boost::bind(&tcp_server::proceed_connection, this, _1));
         try {
-            handler->add(accepted_socket);
+            socket->server->handler->add(accepted_socket);
         }
         catch (...)
         {
@@ -62,7 +65,7 @@ void tcp_server::accept_connection(tcp_socket* socket, epoll_handler* handler)
 
         std::exception_ptr eptr;
         try {
-            new_connection(accepted_socket);
+            on_connection(accepted_socket);
         }
         catch (...)
         {
@@ -77,10 +80,15 @@ void tcp_server::accept_connection(tcp_socket* socket, epoll_handler* handler)
                 on_error(e);
             }
         }
+
+        if (!accepted_socket->is_open())
+        {
+            delete accepted_socket;
+        }
     }
 }
 
-void tcp_server::proceed_connection(tcp_socket* socket, epoll_handler* handler)
+void tcp_server::proceed_connection(tcp_socket* socket)
 {
     std::exception_ptr eptr;
     try {
@@ -99,13 +107,4 @@ void tcp_server::proceed_connection(tcp_socket* socket, epoll_handler* handler)
             on_error(e);
         }
     }
-}
-
-void tcp_server::set_max_pending_connections(int max)
-{
-    if (max < 0)
-    {
-        throw std::runtime_error("Max pending connections must be >= 0");
-    }
-    max_pending_connections_ = max;
 }

@@ -1,19 +1,21 @@
 #include "tcp_socket.h"
-#include "tcp_server.h"
 
-tcp_socket::tcp_socket()
+tcp_socket::tcp_socket(tcp_server* server)
 {
     fd_ = -1;
+    this->server = server;
 }
 
-tcp_socket::tcp_socket(int fd)
+tcp_socket::tcp_socket(int fd, tcp_server* server)
 {
     fd_ = fd;
+    this->server = server;
 }
 
 tcp_socket::~tcp_socket()
 {
     close();
+    server->handler->remove(this);
 }
 
 void tcp_socket::close()
@@ -48,9 +50,6 @@ void tcp_socket::bind(const char *address, const char *service)
         throw tcp_exception(gai_strerror(status));
     }
 
-    sockaddr_in *ipv4 = (sockaddr_in *) servinfo->ai_addr;
-    char ipstr[INET_ADDRSTRLEN];
-    inet_ntop(servinfo->ai_family, &(ipv4->sin_addr), ipstr, sizeof ipstr);
     int socket_fd = -1;
     addrinfo* rp;
 
