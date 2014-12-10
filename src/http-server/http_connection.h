@@ -9,15 +9,19 @@
 #include <map>
 #include <string>
 
-class http_connection
+struct http_connection
 {
 public:
     http_connection(tcp_socket* socket);
     ~http_connection();
 
     void write(const char * data, size_t size);
+    template<typename T>
+    void connect_new_request(T function)
+    {
+        new_request.connect(function);
+    }
 
-    void connect_new_connection(void (*function)(http_request*, http_response*));
 private:
     //Static callbacks
     static int message_begin(http_parser *parser);
@@ -31,9 +35,10 @@ private:
 private:
     //Non-static callbacks
     void parse_request(tcp_socket* socket_);
+    void on_done(http_response* response);
 
 private:
-    boost::signals2::signal<void (http_request*, http_response*)> new_connection;
+    boost::signals2::signal<void (http_request*, http_response*)> new_request;
 
     tcp_socket* socket_;
     http_parser* parser_;

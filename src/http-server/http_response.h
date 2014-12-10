@@ -7,7 +7,7 @@
 #include <string>
 #include <map>
 
-class http_response
+struct http_response
 {
     enum status_code
     {
@@ -57,10 +57,11 @@ class http_response
 public:
     void set_header(const std::string &field, const std::string value);
     void write_head(status_code code);
-    void write(const char * data);
+    void write(const char * data, ssize_t size);
     void done();
 private:
-    //TODO: add signals
+    boost::signals2::signal<void (http_response*)> on_done;
+
     http_response(http_connection* connection);
     void write_header(std::string field, std::string value);
     void write_headers();

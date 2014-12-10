@@ -1,5 +1,5 @@
 #include "epoll_handler.h"
-
+#include <iostream>
 //TODO: unique_ptr
 
 epoll_handler::epoll_handler()
@@ -19,6 +19,7 @@ void epoll_handler::start()
     while (true)
     {
         int n = epoll_wait(epoll_fd_, events, MAX_EVENTS, -1);
+        std::cout << "new events: " << n << std::endl;
         if (n == -1 && errno == EINTR)
         {
             break;
@@ -48,6 +49,7 @@ void epoll_handler::start()
     }
     ::close(epoll_fd_);
     //TODO: remove it
+    std::cout << "removing sockets: " << sockets.size() << std::endl;
     for (auto socket : sockets)
     {
         delete socket.second;
@@ -56,11 +58,7 @@ void epoll_handler::start()
 
 void epoll_handler::stop()
 {
-    ssize_t count = -1;
-    while (count == -1)
-    {
-        count = write(event_fd_, END_STR, sizeof END_STR);
-    }
+    //assert(write(event_fd_, END_STR, sizeof END_STR) != -1);
 }
 
 void epoll_handler::add(tcp_socket* socket)
@@ -79,15 +77,7 @@ void epoll_handler::add(tcp_socket* socket)
 
 void epoll_handler::remove(tcp_socket *socket)
 {
-    epoll_event event;
-    memset(&event, 0, sizeof event);
-    event.data.fd = socket->get_descriptor();
-    event.events = EPOLLIN | EPOLLET;
-    int status = epoll_ctl(epoll_fd_, EPOLL_CTL_DEL, socket->get_descriptor(), &event);
-    if (status == -1)
-    {
-        throw std::runtime_error(strerror(errno));
-    }
+    std::cout << "Removing tcp_socket" << std::endl;
     sockets.erase(socket->get_descriptor());
 }
 

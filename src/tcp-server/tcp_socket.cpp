@@ -1,5 +1,7 @@
 #include "tcp_socket.h"
 
+#include <iostream>
+
 tcp_socket::tcp_socket(tcp_server* server)
 {
     fd_ = -1;
@@ -14,14 +16,16 @@ tcp_socket::tcp_socket(int fd, tcp_server* server)
 
 tcp_socket::~tcp_socket()
 {
+    std::cout << "Deleting tcp_socket" << std::endl;
     close();
-    server->handler->remove(this);
+    //server->handler->remove(this);
 }
 
 void tcp_socket::close()
 {
     if (is_open())
     {
+        std::cout << "Closing tcp_socket" << std::endl;
         assert (::close(fd_) == 0);
         fd_ = -1;
     }

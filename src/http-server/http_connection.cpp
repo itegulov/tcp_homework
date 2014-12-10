@@ -2,6 +2,8 @@
 #include "http_request.h"
 #include "http_response.h"
 
+#include <iostream>
+
 http_connection::http_connection(tcp_socket *socket):
     socket_(socket)
 {
@@ -24,6 +26,7 @@ http_connection::http_connection(tcp_socket *socket):
 
 http_connection::~http_connection()
 {
+    std::cout << "Deleting http_connection" << std::endl;
     delete socket_;
     socket_ = nullptr;
 
@@ -36,6 +39,7 @@ http_connection::~http_connection()
 
 void http_connection::write(const char *data, size_t size)
 {
+    std::cout << "Writing: " << std::string(data, size) << std::endl;
     socket_->write_all(data, size);
 }
 
@@ -57,6 +61,7 @@ int http_connection::url(http_parser *parser, const char *at, size_t length)
     http_connection* connection = static_cast<http_connection*>(parser->data);
     assert(connection->request_ != nullptr);
 
+    std::cout << "New url: " << std::string(at, length) << std::endl;
     connection->url_.append(at, length);
     return 0;
 }
@@ -73,6 +78,8 @@ int http_connection::header_field(http_parser *parser, const char *at, size_t le
         connection->buffer_header_field_ = "";
         connection->buffer_header_value_ = "";
     }
+
+    std::cout << "New header field: " << std::string(at, length) << std::endl;
     connection->buffer_header_field_ += std::string(at, length);
     return 0;
 }
@@ -82,6 +89,7 @@ int http_connection::header_value(http_parser *parser, const char *at, size_t le
     http_connection* connection = static_cast<http_connection*>(parser->data);
     assert(connection->request_ != nullptr);
 
+    std::cout << "New header value: " << std::string(at, length) << std::endl;
     connection->buffer_header_value_ += std::string(at, length);
     return 0;
 }
@@ -93,10 +101,12 @@ int http_connection::headers_complete(http_parser *parser)
 
     assert(parser->method <= 4);
     connection->request_->set_method(static_cast<http_request::http_method>(parser->method));
-    connection->request_->set_http_version(parser->http_major + "." + parser->http_minor);
+    char buffer[10];
+    sprintf(buffer, "%d.%d", parser->http_major, parser->http_minor);
+    connection->request_->set_http_version(std::string(buffer));
 
     http_parser_url url_info;
-    int r = http_parser_parse_url(connection->url_.c_str(), sizeof connection->url_.c_str(), parser->method == HTTP_CONNECT, &url_info);
+    int r = http_parser_parse_url(connection->url_.c_str(), connection->url_.length(), parser->method == HTTP_CONNECT, &url_info);
     assert(r == 0);
 
     connection->request_->set_url(connection->url_);
@@ -108,7 +118,12 @@ int http_connection::headers_complete(http_parser *parser)
 
     //TODO: some more slots?
 
-    connection->new_connection(connection->request_, new http_response(connection));
+    http_response* response = new http_response(connection);
+    response->on_done.connect(boost::bind(&http_connection::on_done, connection, _1));
+
+    std::cout << "Headers has been completed" << std::endl;
+
+    connection->new_request(connection->request_, response);
     return 0;
 }
 
@@ -116,7 +131,7 @@ int http_connection::body(http_parser *parser, const char *at, size_t length)
 {
     http_connection* connection = static_cast<http_connection*>(parser->data);
     assert(connection->request_ != nullptr);
-
+    std::cout << "Body: " << std::string(at, length) << std::endl;
     connection->request_->on_data(at, length);
     return 0;
 }
@@ -126,6 +141,7 @@ int http_connection::message_complete(http_parser *parser)
     http_connection* connection = static_cast<http_connection*>(parser->data);
     assert(connection->request_ != nullptr);
 
+    std::cout << "Message completed" << std::endl;
     connection->request_->set_finished(true);
     connection->request_->on_end();
     return 0;
@@ -141,4 +157,10 @@ void http_connection::parse_request(tcp_socket *socket_)
 
     const char * data = socket_->read_all();
     http_parser_execute(parser_, parser_settings_, data, strlen(data));
+}
+
+void http_connection::on_done(http_response *response)
+{
+    std::cout << "Done with responding" << std::endl;
+    delete socket_;
 }

@@ -4,6 +4,11 @@
  * Getters *
  ***********/
 
+http_request::http_request(http_connection *connection)
+{
+    connection_ = connection;
+}
+
 http_request::http_method http_request::get_method() const
 {
     return method_;

@@ -34,6 +34,31 @@ void http_response::write_head(http_response::status_code code)
     header_writen_ = true;
 }
 
+void http_response::write(const char *data, ssize_t size)
+{
+    if (closed_)
+    {
+        throw std::runtime_error("http_response::write_head() can't write head after response is finished");
+    }
+    if (!header_writen_)
+    {
+        throw std::runtime_error("http_response::write_head() can't write head before header code is written");
+    }
+
+    connection_->write(data, size);
+}
+
+void http_response::done()
+{
+    closed_ = true;
+    on_done(this);
+}
+
+http_response::http_response(http_connection *connection)
+{
+    connection_ = connection;
+}
+
 void http_response::write_header(std::string field, std::string value)
 {
     if (closed_)

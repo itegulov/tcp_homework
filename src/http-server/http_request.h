@@ -7,7 +7,7 @@
 
 #include "http_server_api.h"
 
-class http_request
+struct http_request
 {
     enum http_method
     {
@@ -48,6 +48,7 @@ private:
     void set_url(std::string url);
     void set_headers(std::map<std::string, std::string> headers);
 
+    http_connection* connection_;
     bool finished_;
     http_method method_;
     std::string http_version_;
