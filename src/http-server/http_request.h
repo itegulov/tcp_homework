@@ -19,7 +19,8 @@ struct http_request
     };
     friend struct http_connection;
 public:
-    http_request(http_connection* connection);
+    http_request();
+    ~http_request();
 
     http_method get_method() const;
     const std::string get_url() const;
@@ -48,11 +49,10 @@ private:
     void set_url(std::string url);
     void set_headers(std::map<std::string, std::string> headers);
 
-    http_connection* connection_;
-    bool finished_;
-    http_method method_;
-    std::string http_version_;
-    std::string url_;
+    bool finished_ = false;
+    http_method method_ = HTTP_GET;
+    std::string http_version_ = "";
+    std::string url_ = "";
     std::map<std::string, std::string> headers_;
 };
 

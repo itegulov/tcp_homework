@@ -1,5 +1,5 @@
 #include "tcp_server.h"
-
+#include <iostream>
 tcp_server::~tcp_server()
 {
     //TODO: implement
@@ -40,26 +40,41 @@ void tcp_server::accept_connection(tcp_socket* socket)
             }
         }
         tcp_socket* accepted_socket = new tcp_socket(accepted_fd, socket->server);
-
+        std::cout << "accepted: " << accepted_fd << " " << std::endl;
         try
         {
             accepted_socket->make_non_blocking();
         }
         catch(const tcp_exception& e)
         {
-            on_error(tcp_exception("couldn't make socket non blocking"));
             delete accepted_socket;
+            on_error(tcp_exception("couldn't make socket non blocking"));
             continue;
         }
 
+        char hbuf[NI_MAXHOST], sbuf[NI_MAXSERV];
+
+        int status = getnameinfo (&in_addr, in_len,
+            hbuf, sizeof hbuf,
+            sbuf, sizeof sbuf,
+            NI_NUMERICHOST | NI_NUMERICSERV);
+
+        if (status == 0)
+        {
+            printf("Accepted connection on descriptor %d "
+            "(host=%s, port=%s)\n", accepted_socket->get_descriptor(), hbuf, sbuf);
+            fflush(stdout);
+        }
+
         accepted_socket->on_epoll.connect(boost::bind(&tcp_server::proceed_connection, this, _1));
+        std::cout << "on_epoll connected: " << accepted_fd << " " << std::endl;
         try {
             socket->server->handler->add(accepted_socket);
         }
         catch (...)
         {
-            on_error(tcp_exception("couldn't add socket to epoll handler"));
             delete accepted_socket;
+            on_error(tcp_exception("couldn't add socket to epoll handler"));
             continue;
         }
 
@@ -80,16 +95,13 @@ void tcp_server::accept_connection(tcp_socket* socket)
                 on_error(e);
             }
         }
-
-        if (!accepted_socket->is_open())
-        {
-            delete accepted_socket;
-        }
+        std::cout << "success: " << accepted_fd << " " << std::endl;
     }
 }
 
 void tcp_server::proceed_connection(tcp_socket* socket)
 {
+    std::cout << "on_epoll: proceed_connection enter" << std::endl;
     std::exception_ptr eptr;
     try {
         socket->on_read(socket);

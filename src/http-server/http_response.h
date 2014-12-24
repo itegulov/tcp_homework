@@ -67,8 +67,8 @@ private:
     void write_headers();
 
     http_connection* connection_;
-    bool closed_;
-    bool header_writen_;
+    bool closed_ = false;
+    bool header_writen_ = false;
     std::map<std::string, std::string> headers_;
 };
 

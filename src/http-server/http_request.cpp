@@ -1,13 +1,21 @@
 #include "http_request.h"
 
+#include <iostream>
+
+http_request::http_request()
+{
+
+}
+
+http_request::~http_request()
+{
+    headers_.clear();
+    std::cout << "MDA SEEEEEEEEEEEEEEEEEEER" << std::endl;
+}
+
 /***********
  * Getters *
  ***********/
-
-http_request::http_request(http_connection *connection)
-{
-    connection_ = connection;
-}
 
 http_request::http_method http_request::get_method() const
 {
@@ -60,5 +68,5 @@ void http_request::set_url(std::string url)
 
 void http_request::set_headers(std::map<std::string, std::string> headers)
 {
-    headers_ = headers;
+    headers_ = std::move(headers);
 }

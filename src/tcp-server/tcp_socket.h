@@ -37,7 +37,7 @@ public:
 
     ssize_t read_data(char* data, ssize_t max_size);
     ssize_t write_data(const char* data, ssize_t max_size) const;
-    const char* read_all();
+    std::string read_all();
     void write_all(const char* data, ssize_t size) const;
 
     template<typename T>

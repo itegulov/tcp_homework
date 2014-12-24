@@ -9,16 +9,25 @@
 void on_request(http_request* request, http_response* response)
 {
     std::cout << request->get_url() << " " << request->get_http_version() << std::endl;
+    std::cout << request->get_headers().size() << std::endl;
     for (auto item : request->get_headers())
     {
         std::cout << item.first << ": " << item.second << std::endl;
     }
     std::cout << request->get_body() << std::endl;
-    response->write_head(http_response::STATUS_OK);
-    char data[100];
-    sprintf(data, "<html><body>Sorry, there is no %s</body></html>", request->get_url().c_str());
-    response->write(data, strlen(data));
-    response->done();
+    if (request->get_url() != "/favicon.ico")
+    {
+        response->write_head(http_response::STATUS_OK);
+        char data[100];
+        sprintf(data, "<html><body>Sorry, there is no %s</body></html>", request->get_url().c_str());
+        response->write(data, strlen(data));
+        response->done();
+    }
+    else
+    {
+        response->write_head(http_response::STATUS_NOT_FOUND);
+        response->done();
+    }
 }
 
 epoll_handler handler;
@@ -46,7 +55,7 @@ int main()
     {
         sigaction(SIGTERM, &new_action, nullptr);
     }
-    http_server server("127.0.0.1", "20621", &handler);
+    http_server server("127.0.0.1", "20623", &handler);
     server.connect_new_request(&on_request);
     handler.start();
 }

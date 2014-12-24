@@ -22,6 +22,8 @@ public:
         new_request.connect(function);
     }
 
+    bool need_to_delete();
+
 private:
     //Static callbacks
     static int message_begin(http_parser *parser);
@@ -38,19 +40,22 @@ private:
     void on_done(http_response* response);
 
 private:
+    bool deleting_ = false;
+
     boost::signals2::signal<void (http_request*, http_response*)> new_request;
 
-    tcp_socket* socket_;
-    http_parser* parser_;
-    http_parser_settings* parser_settings_;
+    tcp_socket* socket_ = nullptr;
+    http_parser* parser_ = nullptr;
+    http_parser_settings* parser_settings_ = nullptr;
 
-    http_request* request_;
-    std::string url_;
+    http_request* request_ = nullptr;
+    http_response* response_ = nullptr;
+
+    std::string url_ = "";
     std::map<std::string, std::string> headers_;
 
-    std::string buffer_header_field_;
-    std::string buffer_header_value_;
-
+    std::string buffer_header_field_ = "";
+    std::string buffer_header_value_ = "";
 };
 
 #endif // HTTP_CONNECTION_H

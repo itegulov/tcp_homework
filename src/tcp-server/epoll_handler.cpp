@@ -26,6 +26,7 @@ void epoll_handler::start()
         }
         for (int i = 0; i < n; i++)
         {
+            std::cout << "event fd: " << events[i].data.fd << std::endl;
             if ((events[i].events & EPOLLERR) ||
                 (events[i].events & EPOLLHUP) ||
                 (!(events[i].events & EPOLLIN)))
@@ -43,7 +44,15 @@ void epoll_handler::start()
             else
             {
                 tcp_socket* socket = sockets[events[i].data.fd];
+                std::cout << "socket ok" << std::endl;
+                int fd = socket->get_descriptor();
+                std::cout << "fd ok " << socket->get_descriptor() << std::endl;
                 socket->on_epoll(socket);
+                if (!socket->is_open())
+                {
+                    sockets.erase(fd);
+                    delete socket;
+                }
             }
         }
     }
@@ -58,11 +67,12 @@ void epoll_handler::start()
 
 void epoll_handler::stop()
 {
-    //assert(write(event_fd_, END_STR, sizeof END_STR) != -1);
+    assert(write(event_fd_, END_STR, sizeof END_STR) != -1);
 }
 
 void epoll_handler::add(tcp_socket* socket)
 {
+    std::cout << "going to add to epoll_handler: " << socket->get_descriptor() << " " << std::endl;
     epoll_event event;
     memset(&event, 0, sizeof event);
     event.data.fd = socket->get_descriptor();
@@ -73,6 +83,7 @@ void epoll_handler::add(tcp_socket* socket)
         throw std::runtime_error(strerror(errno));
     }
     sockets[socket->get_descriptor()] = socket;
+    std::cout << "added to epoll_handler: " << socket->get_descriptor() << " " << std::endl;
 }
 
 void epoll_handler::remove(tcp_socket *socket)

@@ -16,7 +16,7 @@ tcp_socket::tcp_socket(int fd, tcp_server* server)
 
 tcp_socket::~tcp_socket()
 {
-    std::cout << "Deleting tcp_socket" << std::endl;
+    std::cout << "Deleting socket " << fd_ << std::endl;
     close();
     //server->handler->remove(this);
 }
@@ -25,7 +25,6 @@ void tcp_socket::close()
 {
     if (is_open())
     {
-        std::cout << "Closing tcp_socket" << std::endl;
         assert (::close(fd_) == 0);
         fd_ = -1;
     }
@@ -175,29 +174,31 @@ void tcp_socket::write_all(const char* data, ssize_t size) const
     }
 }
 
-const char* tcp_socket::read_all()
+std::string tcp_socket::read_all()
 {
+    std::cout << "Read all " << fd_ << std::endl;
     if (!is_open())
     {
         return "";
     }
     ssize_t total_count = 0;
-    char* result = new char[RESULT_SIZE + 1];
-    strcpy(result, "");
+    std::string result;
     char buffer[CHUNK_SIZE];
     while (total_count < RESULT_SIZE) {
         memset(buffer, 0, CHUNK_SIZE);
-        ssize_t count = read_data(buffer, std::min(CHUNK_SIZE, RESULT_SIZE - total_count));
+        std::cout << "Read data" << std::endl;
+        ssize_t count = read_data(buffer, std::min(CHUNK_SIZE, RESULT_SIZE - total_count) - 1);
+        std::cout << count << " " << buffer << std::endl;
         if (count <= 0)
         {
             break;
         }
         else
         {
-            strcat(result, buffer);
+            result += buffer;
             total_count += count;
         }
+        std::cout << "Read totally: " << total_count << std::endl;
     }
-    result[total_count] = '\0';
     return result;
 }

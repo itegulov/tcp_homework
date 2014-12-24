@@ -17,7 +17,7 @@ void just_print(tcp_socket* socket)
 
 void just_get(tcp_socket* socket)
 {
-    const char* s = socket->read_all();
+    const char* s = socket->read_all().c_str();
     if (socket->is_open())
     {
         std::cout << s << std::endl;
