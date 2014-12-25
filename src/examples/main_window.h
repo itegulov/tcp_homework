@@ -1,0 +1,31 @@
+#ifndef MAINWINDOW_H
+#define MAINWINDOW_H
+#include <QtWidgets/QMainWindow>
+#include "http_client.h"
+namespace Ui {
+class MainWindow;
+}
+
+class MainWindow : public QMainWindow
+{
+    Q_OBJECT
+
+public:
+    explicit MainWindow(QWidget *parent = 0);
+    ~MainWindow();
+
+protected:
+    void changeEvent(QEvent *e);
+
+private slots:
+    void onConnected();
+    void onMessage(const char* msg);
+
+    void on_sendButton_clicked();
+
+private:
+    Ui::MainWindow *ui;
+    http_client client;
+};
+
+#endif // MAINWINDOW_H

@@ -180,7 +180,7 @@ int http_connection::message_complete(http_parser *parser)
     std::cout << "Message completed" << std::endl;
     connection->request_->set_finished(true);
     connection->request_->on_end();
-    connection->deleting_ = true;
+    //connection->deleting_ = true;
     return 0;
 }
 
@@ -201,5 +201,5 @@ void http_connection::parse_request(tcp_socket *socket_)
 void http_connection::on_done(http_response *response)
 {
     std::cout << "Done with responding" << std::endl;
-    socket_->close();
+    //socket_->close();
 }

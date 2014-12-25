@@ -22,7 +22,10 @@ struct tcp_server;
 struct tcp_socket {
     friend struct tcp_server;
     friend struct epoll_handler;
+    friend struct tcp_client;
 public:
+    tcp_socket();
+    tcp_socket(const tcp_socket&);
     tcp_socket(tcp_server* server);
     tcp_socket(int fd, tcp_server* server);
 
@@ -50,6 +53,8 @@ public:
     {
         on_epoll.connect(function);
     }
+
+    tcp_socket& operator=(const tcp_socket&);
 
 private:
     static const ssize_t CHUNK_SIZE = 512;

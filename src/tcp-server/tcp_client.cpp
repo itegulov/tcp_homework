@@ -1,5 +1,7 @@
 #include "tcp_client.h"
 
+#include <iostream>
+
 void *tcp_client::get_in_addr(sockaddr *sa)
 {
     return &(((sockaddr_in*)sa)->sin_addr);
@@ -38,8 +40,14 @@ void tcp_client::tcp_connect(const char * address, const char * service)
     if (p == NULL) {
         throw tcp_exception("Failed to connect");
     }
-    tcp_socket socket(socket_fd, nullptr);
+    socket_.fd_ = socket_fd;
 
     freeaddrinfo(servinfo);
-    on_connect(&socket);
+    std::cout << "on_connect: yay" << std::endl;
+    on_connect(&socket_);
+}
+
+void tcp_client::write(const char *data, ssize_t size)
+{
+    socket_.write_all(data, size);
 }

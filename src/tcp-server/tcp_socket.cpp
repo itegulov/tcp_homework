@@ -2,6 +2,18 @@
 
 #include <iostream>
 
+tcp_socket::tcp_socket()
+{
+    server = nullptr;
+    fd_ = -1;
+}
+
+tcp_socket::tcp_socket(const tcp_socket & socket)
+{
+    fd_ = socket.fd_;
+    server = socket.server;
+}
+
 tcp_socket::tcp_socket(tcp_server* server)
 {
     fd_ = -1;
@@ -172,6 +184,13 @@ void tcp_socket::write_all(const char* data, ssize_t size) const
         }
         total_count += count;
     }
+}
+
+tcp_socket &tcp_socket::operator=(const tcp_socket & socket)
+{
+    tcp_socket temp(socket);
+    std::swap(*this, temp);
+    return *this;
 }
 
 std::string tcp_socket::read_all()
