@@ -9,6 +9,8 @@
 #include <fcntl.h>
 #include <errno.h>
 
+
+#include "epoll_handler.h"
 #include "tcp_exception.h"
 #include "tcp_socket.h"
 
@@ -16,12 +18,29 @@
 
 struct tcp_client {
 public:
-    void tcp_connect(const char * address, const char * service);
-    boost::signals2::signal<void (tcp_socket*)> on_connect;
+    tcp_client(const std::string address, const std::string service, epoll_handler& handler);
+    void connect();
 
-    void write(const char* data, ssize_t size);
+    template<typename T>
+    void connect_on_connect(T function)
+    {
+        on_connect.connect(function);
+    }
+
+    template<typename T>
+    void connect_on_message(T function)
+    {
+        on_message.connect(function);
+    }
+
+    void write(const std::string& data);
 private:
+    boost::signals2::signal<void (tcp_socket&)> on_connect;
+    boost::signals2::signal<void (tcp_socket&)> on_message;
     static void *get_in_addr(struct sockaddr *sa);
-    tcp_socket socket_;
+    tcp_socket* socket_;
+    const std::string address_;
+    const std::string service_;
+    epoll_handler& handler_;
 };
 #endif //TCP_CLIENT_H

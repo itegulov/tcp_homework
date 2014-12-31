@@ -9,7 +9,7 @@
 struct http_server
 {
 public:
-    http_server(const char * address, const char * service, epoll_handler* handler);
+    http_server(const std::string& address, const std::string& service, epoll_handler& handler);
 
     template<typename T>
     void connect_new_request(T function)

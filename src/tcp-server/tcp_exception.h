@@ -2,6 +2,8 @@
 #define TCP_EXCEPTION_H
 #include <exception>
 #include <string>
+
+
 struct tcp_exception: public std::exception
 {
 public:

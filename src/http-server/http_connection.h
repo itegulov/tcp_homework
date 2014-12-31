@@ -1,6 +1,6 @@
 #ifndef HTTP_CONNECTION_H
 #define HTTP_CONNECTION_H
-#include "tcp_socket.h"
+#include "tcp_server_api.h"
 #include "http_parser.h"
 #include "http_server_api.h"
 
@@ -15,7 +15,7 @@ public:
     http_connection(tcp_socket* socket);
     ~http_connection();
 
-    void write(const char * data, size_t size);
+    void write(const std::string& data);
     template<typename T>
     void connect_new_request(T function)
     {

@@ -1,24 +1,51 @@
 #include "tcp_client.h"
+#include <csignal>
+#include <iostream>
 
-void on_connect(tcp_socket* socket)
+void on_connect(tcp_socket& socket)
 {
-    const char * buf1 = "Hello, world!\0";
-    socket->write_data(buf1, strlen(buf1));
-    char new_buf1[512];
-    socket->read_data(new_buf1, 512);
-    printf("Client: received '%s'\n", new_buf1);
-    fflush(stdout);
-    const char * buf2 = "Good bye, world!\0";
-    socket->write_data(buf2, strlen(buf2));
-    char new_buf2[512];
-    socket->read_data(new_buf2, 512);
-    printf("Client: received '%s'\n", new_buf2);
-    fflush(stdout);
+    socket.write_data("Hello, world!\0");
+}
+
+void on_message(tcp_socket& socket)
+{
+    std::string s = socket.read_data(512);
+    std::cout << "Client: received '" << s << "'" << std::endl;
+    if (s == "Hello, world!")
+    {
+        socket.write_data("Good bye, world!\0");
+    }
+    else
+    {
+        //socket->close();
+    }
+}
+
+epoll_handler handler;
+
+void sig_handler(int signum)
+{
 }
 
 int main()
 {
-    tcp_client client;
-    client.on_connect.connect(on_connect);
-    client.tcp_connect("127.0.0.1", "20620");
+    struct sigaction new_action, old_action;
+    new_action.sa_handler = sig_handler;
+    sigemptyset(&new_action.sa_mask);
+    new_action.sa_flags = 0;
+    sigaction(SIGINT, nullptr, &old_action);
+    if (old_action.sa_handler != SIG_IGN)
+    {
+        sigaction(SIGINT, &new_action, nullptr);
+    }
+    sigaction(SIGTERM, nullptr, &old_action);
+    if (old_action.sa_handler != SIG_IGN)
+    {
+        sigaction(SIGTERM, &new_action, nullptr);
+    }
+    tcp_client client("127.0.0.1", "20621", handler);
+    client.connect_on_connect(&on_connect);
+    client.connect_on_message(&on_message);
+    client.connect();
+    handler.start();
 }

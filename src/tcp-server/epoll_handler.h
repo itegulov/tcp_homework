@@ -21,8 +21,6 @@
 
 #include "tcp_socket.h"
 
-struct tcp_socket;
-
 struct epoll_handler
 {
 public:
@@ -30,13 +28,12 @@ public:
     void start();
     void stop();
     void add(tcp_socket* socket);
-    void remove(tcp_socket* socket);
+    void remove(const tcp_socket& socket);
 private:
     static const int MAX_EVENTS = 64;
     static constexpr const char* END_STR = "1";
 
-    std::map<int, tcp_socket*> sockets;
-    int event_fd_;
+    std::map<int, std::unique_ptr<tcp_socket> > sockets;
     int epoll_fd_;
     void create_event_fd();
 };

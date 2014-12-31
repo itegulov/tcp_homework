@@ -1,6 +1,8 @@
 #ifndef HTTP_RESPONSE_H
 #define HTTP_RESPONSE_H
 #include "http_server_api.h"
+#include "tcp_server_api.h"
+#include "tcp_socket.h"
 
 #include "boost/signals2.hpp"
 
@@ -57,7 +59,7 @@ struct http_response
 public:
     void set_header(const std::string &field, const std::string value);
     void write_head(status_code code);
-    void write(const char * data, ssize_t size);
+    void write(const std::string& data);
     void done();
 private:
     boost::signals2::signal<void (http_response*)> on_done;

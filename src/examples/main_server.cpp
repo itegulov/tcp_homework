@@ -6,24 +6,20 @@
 
 #include <signal.h>
 
-void just_get(tcp_socket *socket);
-
-void just_print(tcp_socket* socket)
+void just_get(tcp_socket& socket)
 {
-    printf("accepted_fd: %d\n", socket->get_descriptor());
-    fflush(stdout);
-    socket->connect_on_read(&just_get);
-}
-
-void just_get(tcp_socket* socket)
-{
-    const char* s = socket->read_all().c_str();
-    if (socket->is_open())
+    std::string s = socket.read_all();
+    if (socket.is_open())
     {
         std::cout << s << std::endl;
-        socket->write_all(s, strlen(s));
+        socket.write_all(s);
     }
-    delete[] s;
+}
+void just_print(tcp_socket& socket)
+{
+    printf("accepted_fd: %d\n", socket.get_descriptor());
+    fflush(stdout);
+    socket.connect_on_read(&just_get);
 }
 
 void on_error(const std::exception& e)
@@ -36,7 +32,6 @@ epoll_handler handler;
 
 void sig_handler(int signum)
 {
-    handler.stop();
 }
 
 int main()
@@ -55,7 +50,7 @@ int main()
     {
         sigaction(SIGTERM, &new_action, nullptr);
     }
-    tcp_server server("127.0.0.1", "20620", &handler, 20);
+    tcp_server server("127.0.0.1", "20621", handler, 20);
     server.connect_on_connection(&just_print);
     server.connect_on_error(&on_error);
     handler.start();

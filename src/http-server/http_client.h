@@ -5,8 +5,7 @@
 class http_client
 {
 public:
-    http_client();
-    void start(const char * url, const char * address, const char * service);
+    http_client(const std::string& url, const std::string& address, const std::string& service, epoll_handler& handler);
 
     template<typename T>
     void connect_on_connection(T function)
@@ -20,7 +19,7 @@ public:
         on_message.connect(function);
     }
 
-    void write(const char * data, ssize_t size);
+    void write(const std::string& data);
 private:
     boost::signals2::signal<void ()> on_connection;
     boost::signals2::signal<void (const char*)> on_message;

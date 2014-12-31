@@ -20,7 +20,7 @@ void on_request(http_request* request, http_response* response)
         response->write_head(http_response::STATUS_OK);
         char data[100];
         sprintf(data, "<html><body>Sorry, there is no %s</body></html>", request->get_url().c_str());
-        response->write(data, strlen(data));
+        response->write(std::string(data, strlen(data)));
         response->done();
     }
     else
@@ -34,9 +34,7 @@ epoll_handler handler;
 
 void sig_handler(int signum)
 {
-    std::cout << "signal handler" << std::endl;
-    handler.stop();
-    std::cout << "stopped!" << std::endl;
+
 }
 
 int main()
@@ -55,7 +53,7 @@ int main()
     {
         sigaction(SIGTERM, &new_action, nullptr);
     }
-    http_server server("127.0.0.1", "20623", &handler);
+    http_server server("127.0.0.1", "20623", handler);
     server.connect_new_request(&on_request);
     handler.start();
 }

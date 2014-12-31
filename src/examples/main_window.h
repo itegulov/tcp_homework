@@ -12,6 +12,7 @@ class MainWindow : public QMainWindow
 
 public:
     explicit MainWindow(QWidget *parent = 0);
+    MainWindow(QWidget *parent, epoll_handler& handler);
     ~MainWindow();
 
 protected:
@@ -25,6 +26,7 @@ private slots:
 
 private:
     Ui::MainWindow *ui;
+    epoll_handler handler;
     http_client client;
 };
 

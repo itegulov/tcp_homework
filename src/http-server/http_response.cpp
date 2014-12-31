@@ -1,5 +1,6 @@
 #include "http_response.h"
 #include "http_connection.h"
+#include "tcp_socket.h"
 
 #include <exception>
 
@@ -28,13 +29,13 @@ void http_response::write_head(http_response::status_code code)
     int status = static_cast<int>(code);
     char buffer[50];
     int res = sprintf(buffer, "HTTP/1.1 %d %s\r\n", status, "code"); //TODO: fix code to code representation
-    connection_->write(buffer, res);
+    connection_->write(std::string(buffer));
     write_headers();
-    connection_->write("\r\n", 2);
+    connection_->write("\r\n");
     header_writen_ = true;
 }
 
-void http_response::write(const char *data, ssize_t size)
+void http_response::write(const std::string& data)
 {
     if (closed_)
     {
@@ -45,7 +46,7 @@ void http_response::write(const char *data, ssize_t size)
         throw std::runtime_error("http_response::write_head() can't write head before header code is written");
     }
 
-    connection_->write(data, size);
+    connection_->write(data);
 }
 
 void http_response::done()
@@ -65,10 +66,10 @@ void http_response::write_header(std::string field, std::string value)
     {
         throw std::runtime_error("http_response::write_header() can't write header after response is finished");
     }
-    connection_->write(field.c_str(), strlen(field.c_str()));
-    connection_->write(": ", 2);
-    connection_->write(value.c_str(), strlen(value.c_str()));
-    connection_->write("\r\n", 2);
+    connection_->write(field);
+    connection_->write(": ");
+    connection_->write(value);
+    connection_->write("\r\n");
 }
 
 void http_response::write_headers()

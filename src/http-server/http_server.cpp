@@ -4,7 +4,7 @@
 
 #include <iostream>
 
-http_server::http_server(const char *address, const char *service, epoll_handler* handler)
+http_server::http_server(const std::string& address, const std::string& service, epoll_handler& handler)
     : tcp_server_(address, service, handler, 15)
 {
     tcp_server_.connect_on_connection(boost::bind(&http_server::on_connection, this, _1));

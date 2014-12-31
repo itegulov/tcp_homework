@@ -9,7 +9,6 @@ epoll_handler::epoll_handler()
     {
         throw std::runtime_error(strerror(errno));
     }
-    create_event_fd();
 }
 
 void epoll_handler::start()
@@ -32,84 +31,48 @@ void epoll_handler::start()
                 (!(events[i].events & EPOLLIN)))
             {
                 //Erorr occured
-                tcp_socket* socket = sockets[events[i].data.fd];
+                std::unique_ptr<tcp_socket>& socket = sockets[events[i].data.fd];
+                //tcp_socket& socket = sockets[events[i].data.fd];
                 sockets.erase(socket->get_descriptor());
-                delete socket;
                 continue;
-            }
-            else if (events[i].data.fd == event_fd_)
-            {
-                break;
             }
             else
             {
-                tcp_socket* socket = sockets[events[i].data.fd];
-                std::cout << "socket ok" << std::endl;
+                //std::unique_ptr<tcp_socket> socket = sockets.find(events[i].data.fd)->second;
+                std::unique_ptr<tcp_socket>& socket = sockets[events[i].data.fd];
                 int fd = socket->get_descriptor();
-                std::cout << "fd ok " << socket->get_descriptor() << std::endl;
-                socket->on_epoll(socket);
+                socket->on_epoll(*socket);
                 if (!socket->is_open())
                 {
+                    std::cout << "erasing fd: " << fd << std::endl;
                     sockets.erase(fd);
-                    delete socket;
+                    //delete socket;
                 }
             }
         }
     }
     ::close(epoll_fd_);
     //TODO: remove it
-    std::cout << "removing sockets: " << sockets.size() << std::endl;
-    for (auto socket : sockets)
-    {
-        delete socket.second;
-    }
-}
-
-void epoll_handler::stop()
-{
-    assert(write(event_fd_, END_STR, sizeof END_STR) != -1);
 }
 
 void epoll_handler::add(tcp_socket* socket)
 {
-    std::cout << "going to add to epoll_handler: " << socket->get_descriptor() << " " << std::endl;
+    std::cout << "Adding to epoll_handler: " << socket->get_descriptor() << " " << std::endl;
     epoll_event event;
     memset(&event, 0, sizeof event);
     event.data.fd = socket->get_descriptor();
     event.events = EPOLLIN | EPOLLET;
-    int status = epoll_ctl (epoll_fd_, EPOLL_CTL_ADD, socket->get_descriptor(), &event);
+    int status = epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, socket->get_descriptor(), &event);
     if (status == -1)
     {
         throw std::runtime_error(strerror(errno));
     }
-    sockets[socket->get_descriptor()] = socket;
+    sockets.insert(std::pair<int, std::unique_ptr<tcp_socket> >(socket->get_descriptor(), std::unique_ptr<tcp_socket>(socket)));
     std::cout << "added to epoll_handler: " << socket->get_descriptor() << " " << std::endl;
 }
 
-void epoll_handler::remove(tcp_socket *socket)
+void epoll_handler::remove(const tcp_socket& socket)
 {
     std::cout << "Removing tcp_socket" << std::endl;
-    sockets.erase(socket->get_descriptor());
-}
-
-
-void epoll_handler::create_event_fd()
-{
-    event_fd_ = eventfd(0, 0);
-    if (event_fd_ == -1)
-    {
-        throw std::runtime_error(strerror(errno));
-    }
-    int flags = fcntl(event_fd_, F_GETFL, 0);
-    if (flags == -1)
-    {
-        throw std::runtime_error("fcntl() error");
-    }
-    flags |= O_NONBLOCK;
-    int status = fcntl(event_fd_, F_SETFL, flags);
-    if (status == -1)
-    {
-        throw std::runtime_error("fcntl() error");
-    }
-    add(new tcp_socket(event_fd_, nullptr));
+    sockets.erase(socket.get_descriptor());
 }

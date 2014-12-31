@@ -55,10 +55,10 @@ http_connection::~http_connection()
     std::cout << "End deleting http_connection" << std::endl;
 }
 
-void http_connection::write(const char *data, size_t size)
+void http_connection::write(const std::string& data)
 {
-    std::cout << "Writing: " << std::string(data, size) << std::endl;
-    socket_->write_all(data, size);
+    std::cout << "Writing: " << data << std::endl;
+    socket_->write_all(data);
 }
 
 bool http_connection::need_to_delete()

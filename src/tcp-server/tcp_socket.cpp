@@ -2,28 +2,13 @@
 
 #include <iostream>
 
-tcp_socket::tcp_socket()
+tcp_socket::tcp_socket(int fd, epoll_handler& handler): handler_(handler), fd_(fd)
 {
-    server = nullptr;
-    fd_ = -1;
 }
 
-tcp_socket::tcp_socket(const tcp_socket & socket)
+tcp_socket::tcp_socket(const tcp_socket &other): handler_(other.handler_), fd_(other.fd_)
 {
-    fd_ = socket.fd_;
-    server = socket.server;
-}
 
-tcp_socket::tcp_socket(tcp_server* server)
-{
-    fd_ = -1;
-    this->server = server;
-}
-
-tcp_socket::tcp_socket(int fd, tcp_server* server)
-{
-    fd_ = fd;
-    this->server = server;
 }
 
 tcp_socket::~tcp_socket()
@@ -52,7 +37,7 @@ bool tcp_socket::is_open() const
     return fd_ != -1;
 }
 
-void tcp_socket::bind(const char *address, const char *service)
+void tcp_socket::bind(const std::string& address, const std::string& service)
 {
     int status = 0;
     addrinfo hints;
@@ -60,7 +45,7 @@ void tcp_socket::bind(const char *address, const char *service)
     memset(&hints, 0, sizeof hints);
     hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_STREAM;
-    if ((status = getaddrinfo(address, service, &hints, &servinfo)) != 0)
+    if ((status = getaddrinfo(address.c_str(), service.c_str(), &hints, &servinfo)) != 0)
     {
         throw tcp_exception(gai_strerror(status));
     }
@@ -129,38 +114,48 @@ void tcp_socket::listen(int max_pending_connections)
     }
 }
 
-ssize_t tcp_socket::read_data(char *data, ssize_t max_size)
+std::string tcp_socket::read_data(ssize_t max_size)
 {
     if (!is_open())
     {
         return 0;
     }
-    ssize_t count = recv(fd_, data, max_size, 0);
-    if (count == -1)
-    {
-        if (errno != EAGAIN)
+    const unsigned int MAX_BUF_LENGTH = 4096;
+    std::vector<char> buffer(MAX_BUF_LENGTH);
+    std::string rcv;
+    ssize_t count = 0;
+    ssize_t total_count = 0;
+    do {
+        count = recv(fd_, buffer.data(), std::min((ssize_t)buffer.size(), max_size - total_count), 0);
+        if ( count == -1 ) {
+            if (errno != EAGAIN)
+            {
+                close();
+                throw tcp_exception(strerror(errno));
+            }
+            break;
+        }
+        else if (count == 0)
         {
             close();
-            throw tcp_exception(strerror(errno));
+            break;
         }
-        return -1;
-    }
-    else if (count == 0)
-    {
-        close();
-        return 0;
-    }
-    data[count] = '\0';
-    return count;
+        else
+        {
+            rcv.append(buffer.cbegin(), buffer.cbegin() + count);
+            total_count += count;
+        }
+    } while (total_count < count);
+    return rcv;
 }
 
-ssize_t tcp_socket::write_data(const char *data, ssize_t max_size) const
+ssize_t tcp_socket::write_data(const std::string & data) const
 {
     if (!is_open())
     {
         return 0;
     }
-    ssize_t count = send(fd_, data, max_size, 0);
+    ssize_t count = send(fd_, data.c_str(), data.length(), 0);
     if (count == -1)
     {
         throw tcp_exception(strerror(errno));
@@ -168,16 +163,17 @@ ssize_t tcp_socket::write_data(const char *data, ssize_t max_size) const
     return count;
 }
 
-void tcp_socket::write_all(const char* data, ssize_t size) const
+void tcp_socket::write_all(const std::string & data) const
 {
     if (!is_open())
     {
         return;
     }
     ssize_t total_count = 0;
+    ssize_t size = (ssize_t)data.length();
     while (total_count != size)
     {
-        ssize_t count = write_data(data + total_count, size - total_count);
+        ssize_t count = write_data(data.substr(total_count, std::string::npos));
         if (count <= 0)
         {
             break;
@@ -186,38 +182,29 @@ void tcp_socket::write_all(const char* data, ssize_t size) const
     }
 }
 
-tcp_socket &tcp_socket::operator=(const tcp_socket & socket)
-{
-    tcp_socket temp(socket);
-    std::swap(*this, temp);
-    return *this;
-}
-
 std::string tcp_socket::read_all()
 {
-    std::cout << "Read all " << fd_ << std::endl;
     if (!is_open())
     {
         return "";
     }
-    ssize_t total_count = 0;
     std::string result;
-    char buffer[CHUNK_SIZE];
-    while (total_count < RESULT_SIZE) {
-        memset(buffer, 0, CHUNK_SIZE);
-        std::cout << "Read data" << std::endl;
-        ssize_t count = read_data(buffer, std::min(CHUNK_SIZE, RESULT_SIZE - total_count) - 1);
-        std::cout << count << " " << buffer << std::endl;
-        if (count <= 0)
-        {
+    ssize_t total_count = 0;
+    while (true) {
+        try {
+            std::string chunk = read_data(std::min(CHUNK_SIZE, RESULT_SIZE - total_count) - 1);
+            total_count += chunk.length();
+            if (chunk == "")
+            {
+                break;
+            }
+            else
+            {
+                result += chunk;
+            }
+        } catch (const tcp_exception&) {
             break;
         }
-        else
-        {
-            result += buffer;
-            total_count += count;
-        }
-        std::cout << "Read totally: " << total_count << std::endl;
     }
     return result;
 }

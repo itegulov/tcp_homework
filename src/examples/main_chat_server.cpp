@@ -18,11 +18,13 @@ void on_request(http_request* request, http_response* response)
     if (request->get_url() == "/chat")
     {
         response->write_head(http_response::STATUS_OK);
+        response->write(request->get_url());
         response->done();
     }
     else
     {
-        response->write_head(http_response::STATUS_NOT_FOUND);
+        response->write_head(http_response::STATUS_OK);
+        response->write(request->get_url());
         response->done();
     }
 }
@@ -31,9 +33,7 @@ epoll_handler handler;
 
 void sig_handler(int signum)
 {
-    std::cout << "signal handler" << std::endl;
-    handler.stop();
-    std::cout << "stopped!" << std::endl;
+
 }
 
 int main()
@@ -52,7 +52,7 @@ int main()
     {
         sigaction(SIGTERM, &new_action, nullptr);
     }
-    http_server server("127.0.0.1", "24500", &handler);
+    http_server server("127.0.0.1", "24500", handler);
     server.connect_new_request(&on_request);
     handler.start();
 }
