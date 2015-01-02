@@ -1,12 +1,14 @@
 #include "tcp_socket.h"
+#include "epoll_handler.h"
+#include "tcp_exception.h"
 
 #include <iostream>
 
-tcp_socket::tcp_socket(int fd, epoll_handler& handler): handler_(handler), fd_(fd)
+tcp_socket::tcp_socket(int fd, epoll_handler& handler): handler_(handler), fd_(fd), is_open_(fd != -1)
 {
 }
 
-tcp_socket::tcp_socket(const tcp_socket &other): handler_(other.handler_), fd_(other.fd_)
+tcp_socket::tcp_socket(const tcp_socket &other): handler_(other.handler_), fd_(other.fd_), is_open_(other.is_open_)
 {
 
 }
@@ -23,7 +25,8 @@ void tcp_socket::close()
     if (is_open())
     {
         assert (::close(fd_) == 0);
-        fd_ = -1;
+        on_close(*this);
+        is_open_ = false;
     }
 }
 
@@ -34,7 +37,7 @@ int tcp_socket::get_descriptor() const
 
 bool tcp_socket::is_open() const
 {
-    return fd_ != -1;
+    return is_open_;
 }
 
 void tcp_socket::bind(const std::string& address, const std::string& service)
@@ -84,6 +87,7 @@ void tcp_socket::bind(const std::string& address, const std::string& service)
 
     freeaddrinfo(servinfo);
     fd_ = socket_fd;
+    is_open_ = true;
 }
 
 void tcp_socket::make_non_blocking()

@@ -17,7 +17,7 @@ void on_message(tcp_socket& socket)
     }
     else
     {
-        //socket->close();
+        socket.close();
     }
 }
 

@@ -10,7 +10,6 @@
 #include <fcntl.h>
 
 #include "tcp_server_api.h"
-#include "tcp_exception.h"
 
 #include <boost/signals2.hpp>
 
@@ -67,6 +66,7 @@ private:
     boost::signals2::signal<void (tcp_socket&)> on_epoll;
 
     int fd_;
+    bool is_open_;
 };
 
 #endif //TCP_SOCKET_H

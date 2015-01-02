@@ -1,4 +1,6 @@
 #include "tcp_server.h"
+#include "tcp_exception.h"
+
 #include <iostream>
 
 tcp_server::~tcp_server()

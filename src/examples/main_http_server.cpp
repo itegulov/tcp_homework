@@ -1,32 +1,19 @@
 #include "http_server.h"
-#include "http_request.h"
-#include "http_response.h"
 
+#include <csignal>
 #include <cstdio>
 #include <iostream>
-#include <csignal>
 
-void on_request(http_request* request, http_response* response)
+void on_request(http_request& request, http_response& response)
 {
-    std::cout << request->get_url() << " " << request->get_http_version() << std::endl;
-    std::cout << request->get_headers().size() << std::endl;
-    for (auto item : request->get_headers())
+    std::cout << "New request:" << std::endl;
+    std::cout << request.get_method() << std::endl;
+    std::cout << request.get_url() << std::endl;
+    std::cout << request.get_major_version() << " " << request.get_minor_version() << std::endl;
+    const std::map<std::string, std::string>& headers = request.get_headers();
+    for (auto header : headers)
     {
-        std::cout << item.first << ": " << item.second << std::endl;
-    }
-    std::cout << request->get_body() << std::endl;
-    if (request->get_url() != "/favicon.ico")
-    {
-        response->write_head(http_response::STATUS_OK);
-        char data[100];
-        sprintf(data, "<html><body>Sorry, there is no %s</body></html>", request->get_url().c_str());
-        response->write(std::string(data, strlen(data)));
-        response->done();
-    }
-    else
-    {
-        response->write_head(http_response::STATUS_NOT_FOUND);
-        response->done();
+        std::cout << header.first << ": " << header.second << std::endl;
     }
 }
 
@@ -54,6 +41,9 @@ int main()
         sigaction(SIGTERM, &new_action, nullptr);
     }
     http_server server("127.0.0.1", "20623", handler);
-    server.connect_new_request(&on_request);
+    //server.connect_on_body(&on_body);
+    //server.connect_on_head(&on_head);
+    //server.connect_new_request(&on_request);
+    server.connect_on_request(&on_request);
     handler.start();
 }

@@ -1,59 +1,40 @@
 #ifndef HTTP_REQUEST_H
 #define HTTP_REQUEST_H
-#include <map>
-#include <string>
-
-#include "boost/signals2.hpp"
-
 #include "http_server_api.h"
+#include "tcp_server_api.h"
+#include "http_parser.h"
+#include "http_response.h"
 
 struct http_request
 {
-    enum http_method
-    {
-        HTTP_DELETE = 0,
-        HTTP_GET,
-        HTTP_HEAD,
-        HTTP_POST,
-        HTTP_PUT
-    };
-    friend struct http_connection;
 public:
-    http_request();
-    ~http_request();
+    http_request(tcp_socket& socket, http_server& server);
 
-    http_method get_method() const;
-    const std::string get_url() const;
-    const std::string get_http_version() const;
-    std::map<std::string, std::string> get_headers() const;
-    const std::string get_body() const;
+    const std::string& get_method() const;
+    const std::string& get_url() const;
+    int get_major_version() const;
+    int get_minor_version() const;
+    const std::map<std::string, std::string>& get_headers() const;
 
-    template<typename T>
-    void connect_on_data(T function)
-    {
-        on_data.connect(function);
-    }
-
-    template<typename T>
-    void connect_on_end(T function)
-    {
-        on_end.connect(function);
-    }
 private:
-    boost::signals2::signal<void (const char *, int)> on_data;
-    boost::signals2::signal<void ()> on_end;
+    void get_method(const std::string& method);
+    void get_url(const std::string& url);
+    void get_http_version(const int& major_version, const int& minor_version);
+    void get_header(const std::string& name, const std::string& value);
+    void headers_end();
+    void get_body(const std::string& body);
 
-    void set_finished(bool finished);
-    void set_method(http_method method);
-    void set_http_version(std::string http_version);
-    void set_url(std::string url);
-    void set_headers(std::map<std::string, std::string> headers);
+    tcp_socket& socket_;
+    http_server& server_;
+    http_parser parser_;
+    http_response response_;
 
-    bool finished_ = false;
-    http_method method_ = HTTP_GET;
-    std::string http_version_ = "";
-    std::string url_ = "";
+    std::string method_;
+    std::string url_;
+    int major_version_;
+    int minor_version_;
     std::map<std::string, std::string> headers_;
+    std::string body_;
 };
 
 #endif // HTTP_REQUEST_H

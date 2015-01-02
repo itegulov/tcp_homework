@@ -1,72 +1,78 @@
 #include "http_request.h"
+#include "http_server.h"
+#include "tcp_socket.h"
 
-#include <iostream>
+#include "boost/bind.hpp"
 
-http_request::http_request()
+http_request::http_request(tcp_socket &socket, http_server& server):
+    socket_(socket),
+    server_(server)
 {
-
+    parser_.connect_on_method(boost::bind(&http_request::get_method, this, _1));
+    parser_.connect_on_url(boost::bind(&http_request::get_url, this, _1));
+    parser_.connect_on_http_version(boost::bind(&http_request::get_http_version, this, _1, _2));
+    parser_.connect_on_header(boost::bind(&http_request::get_header, this, _1, _2));
+    parser_.connect_on_headers_end(boost::bind(&http_request::headers_end, this));
+    parser_.connect_on_body(boost::bind(&http_request::get_body, this, _1));
+    socket_.connect_on_read([&](tcp_socket& socket){
+        std::string data = socket.read_all();
+        parser_.parse(data);
+    });
 }
 
-http_request::~http_request()
-{
-    headers_.clear();
-    std::cout << "MDA SEEEEEEEEEEEEEEEEEEER" << std::endl;
-}
-
-/***********
- * Getters *
- ***********/
-
-http_request::http_method http_request::get_method() const
+const std::string &http_request::get_method() const
 {
     return method_;
 }
 
-const std::string http_request::get_url() const
+const std::string &http_request::get_url() const
 {
     return url_;
 }
 
-const std::string http_request::get_http_version() const
+int http_request::get_major_version() const
 {
-    return http_version_;
+    return major_version_;
 }
 
-std::map<std::string, std::string> http_request::get_headers() const
+int http_request::get_minor_version() const
+{
+    return minor_version_;
+}
+
+const std::map<std::string, std::string> &http_request::get_headers() const
 {
     return headers_;
 }
 
-const std::string http_request::get_body() const
-{
-    //TODO: implement (do i need this?)
-}
-
-/***********
- * Setters *
- ***********/
-
-void http_request::set_finished(bool finished)
-{
-    finished_ = finished;
-}
-
-void http_request::set_method(http_request::http_method method)
+void http_request::get_method(const std::string &method)
 {
     method_ = method;
 }
 
-void http_request::set_http_version(std::string http_version)
-{
-    http_version_ = http_version;
-}
-
-void http_request::set_url(std::string url)
+void http_request::get_url(const std::string &url)
 {
     url_ = url;
 }
 
-void http_request::set_headers(std::map<std::string, std::string> headers)
+void http_request::get_http_version(const int &major_version, const int &minor_version)
 {
-    headers_ = std::move(headers);
+    major_version_ = major_version;
+    minor_version_ = minor_version;
+}
+
+void http_request::get_header(const std::string &name, const std::string &value)
+{
+    headers_[name] = value;
+}
+
+void http_request::headers_end()
+{
+    std::cout << "Headers end" << std::endl;
+    server_.on_request(*this, response_);
+}
+
+void http_request::get_body(const std::string &body)
+{
+    body_ += body;
 }

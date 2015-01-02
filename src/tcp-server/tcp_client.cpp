@@ -24,6 +24,7 @@ void tcp_client::connect()
     int status = getaddrinfo(address_.c_str(), service_.c_str(), &hints, &servinfo);
     if (status != 0)
     {
+        freeaddrinfo(servinfo);
         throw tcp_exception(gai_strerror(status));
     }
     int socket_fd;
@@ -46,6 +47,7 @@ void tcp_client::connect()
     }
 
     if (p == NULL) {
+        freeaddrinfo(servinfo);
         throw tcp_exception("Failed to connect");
     }
     socket_ = new tcp_socket(socket_fd, handler_);
@@ -58,6 +60,10 @@ void tcp_client::connect()
         {
             std::cout << "on_epoll tcp_client eee" << std::endl;
             on_message(socket);
+        });
+    socket_->connect_on_close([&](tcp_socket& socket)
+        {
+            socket.handler_.stop();
         });
 }
 
