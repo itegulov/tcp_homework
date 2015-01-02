@@ -4,18 +4,34 @@
 
 #include "boost/bind.hpp"
 
-http_request::http_request(tcp_socket &socket, http_server& server):
+http_request::http_request(tcp_socket &socket):
     socket_(socket),
-    server_(server)
+    response_(socket)
 {
-    parser_.connect_on_method(boost::bind(&http_request::get_method, this, _1));
-    parser_.connect_on_url(boost::bind(&http_request::get_url, this, _1));
-    parser_.connect_on_http_version(boost::bind(&http_request::get_http_version, this, _1, _2));
-    parser_.connect_on_header(boost::bind(&http_request::get_header, this, _1, _2));
-    parser_.connect_on_headers_end(boost::bind(&http_request::headers_end, this));
-    parser_.connect_on_body(boost::bind(&http_request::get_body, this, _1));
-    socket_.connect_on_read([&](tcp_socket& socket){
+    parser_.connect_on_method([this](const std::string& method){
+        method_ = method;
+    });
+    parser_.connect_on_url([this](const std::string& url){
+        url_ = url;
+    });
+    parser_.connect_on_http_version([this](int major_version, int minor_version){
+        major_version_ = major_version;
+        minor_version_ = minor_version;
+    });
+    parser_.connect_on_header([this](const std::string& name, const std::string& value){
+        headers_[name] = value;
+    });
+    parser_.connect_on_headers_end([this](){
+        std::cout << "Headers end" << std::endl;
+        on_headers_end(*this, response_);
+    });
+    parser_.connect_on_body([this](const std::string& body){
+        on_body(*this, body, response_);
+    });
+    socket_.connect_on_read([&](tcp_socket& socket) {
+        std::cout << "WUTS GOING ON?!" << std::endl;
         std::string data = socket.read_all();
+        std::cout << "GOT " << data << std::endl;
         parser_.parse(data);
     });
 }
@@ -45,34 +61,61 @@ const std::map<std::string, std::string> &http_request::get_headers() const
     return headers_;
 }
 
-void http_request::get_method(const std::string &method)
+//HTTP_CLIENT_REQUEST
+
+http_client_request::http_client_request(tcp_socket &socket):
+    socket_(socket),
+    response_(socket)
 {
-    method_ = method;
+    parser_.connect_on_code([this](const std::string& code){
+        code_ = code;
+    });
+    parser_.connect_on_code_info([this](const std::string& code_info){
+        code_info_ = code_info;
+    });
+    parser_.connect_on_http_version([this](int major_version, int minor_version){
+        major_version_ = major_version;
+        minor_version_ = minor_version;
+    });
+    parser_.connect_on_header([this](const std::string& name, const std::string& value){
+        headers_[name] = value;
+    });
+    parser_.connect_on_headers_end([this](){
+        std::cout << "Headers end" << std::endl;
+        on_headers_end(*this, response_);
+    });
+    parser_.connect_on_body([this](const std::string& body){
+        on_body(*this, body, response_);
+    });
+    socket_.connect_on_read([&](tcp_socket& socket) {
+        std::cout << "WUTS GOING ON?!" << std::endl;
+        std::string data = socket.read_all();
+        std::cout << "GOT " << data << std::endl;
+        parser_.parse(data);
+    });
 }
 
-void http_request::get_url(const std::string &url)
+const std::string &http_client_request::get_code() const
 {
-    url_ = url;
+    return code_;
 }
 
-void http_request::get_http_version(const int &major_version, const int &minor_version)
+const std::string &http_client_request::get_code_info() const
 {
-    major_version_ = major_version;
-    minor_version_ = minor_version;
+    return code_info_;
 }
 
-void http_request::get_header(const std::string &name, const std::string &value)
+int http_client_request::get_major_version() const
 {
-    headers_[name] = value;
+    return major_version_;
 }
 
-void http_request::headers_end()
+int http_client_request::get_minor_version() const
 {
-    std::cout << "Headers end" << std::endl;
-    server_.on_request(*this, response_);
+    return minor_version_;
 }
 
-void http_request::get_body(const std::string &body)
+const std::map<std::string, std::string> &http_client_request::get_headers() const
 {
-    body_ += body;
+    return headers_;
 }

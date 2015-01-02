@@ -6,30 +6,31 @@
 #include <iostream>
 #include <csignal>
 
-void on_request(http_request* request, http_response* response)
+epoll_handler handler;
+http_server server("127.0.0.1", "24501", handler);
+
+void on_request(http_request& request, http_response& response)
 {
-    std::cout << request->get_url() << " " << request->get_http_version() << std::endl;
-    std::cout << request->get_headers().size() << std::endl;
-    for (auto item : request->get_headers())
+    std::cout << "New request:" << std::endl;
+    std::cout << request.get_method() << std::endl;
+    std::cout << request.get_url() << std::endl;
+    std::cout << request.get_major_version() << " " << request.get_minor_version() << std::endl;
+    const std::map<std::string, std::string>& headers = request.get_headers();
+    for (auto header : headers)
     {
-        std::cout << item.first << ": " << item.second << std::endl;
+        std::cout << header.first << ": " << header.second << std::endl;
     }
-    std::cout << request->get_body() << std::endl;
-    if (request->get_url() == "/chat")
-    {
-        response->write_head(http_response::STATUS_OK);
-        response->write(request->get_url());
-        response->done();
-    }
-    else
-    {
-        response->write_head(http_response::STATUS_OK);
-        response->write(request->get_url());
-        response->done();
-    }
+    response.write_head(http_response::STATUS_OK);
 }
 
-epoll_handler handler;
+void on_body(http_request& request, const std::string& data, http_response& response)
+{
+    std::vector<std::pair<http_request&, http_response&> > vector = server.get_connections();
+    for (auto it = vector.begin(); it != vector.end(); it++)
+    {
+        (*it).second.write(data);
+    }
+}
 
 void sig_handler(int signum)
 {
@@ -52,7 +53,7 @@ int main()
     {
         sigaction(SIGTERM, &new_action, nullptr);
     }
-    http_server server("127.0.0.1", "24500", handler);
-    server.connect_new_request(&on_request);
+    server.connect_on_request(&on_request);
+    server.connect_on_body(&on_body);
     handler.start();
 }

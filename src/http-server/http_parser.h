@@ -62,4 +62,62 @@ private:
     std::string headers_buffer_;
 };
 
+struct http_client_parser
+{
+    enum position {STARTING_LINE, HEAD, BODY};
+public:
+    http_client_parser();
+
+    void parse(std::string data);
+
+    template<typename T>
+    void connect_on_code(T function)
+    {
+        on_code.connect(function);
+    }
+
+    template<typename T>
+    void connect_on_code_info(T function)
+    {
+        on_code_info.connect(function);
+    }
+
+    template<typename T>
+    void connect_on_http_version(T function)
+    {
+        on_http_version.connect(function);
+    }
+
+    template<typename T>
+    void connect_on_header(T function)
+    {
+        on_header.connect(function);
+    }
+
+    template<typename T>
+    void connect_on_headers_end(T function)
+    {
+        on_headers_end.connect(function);
+    }
+
+    template<typename T>
+    void connect_on_body(T function)
+    {
+        on_body.connect(function);
+    }
+
+private:
+    void parse_starting_line(const std::string& starting_line);
+    void parse_headers(const std::string& headers);
+
+    boost::signals2::signal<void (const std::string&)> on_code;
+    boost::signals2::signal<void (const std::string&)> on_code_info;
+    boost::signals2::signal<void (const int&, const int&)> on_http_version;
+    boost::signals2::signal<void (const std::string&, const std::string&)> on_header;
+    boost::signals2::signal<void ()> on_headers_end;
+    boost::signals2::signal<void (const std::string&)> on_body;
+    position pos_ = STARTING_LINE;
+    std::string headers_buffer_;
+};
+
 #endif // HTTP_PARSER_H

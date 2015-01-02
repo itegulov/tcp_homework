@@ -1,4 +1,5 @@
 #include "http_server.h"
+#include "http_response.h"
 
 #include <csignal>
 #include <cstdio>
@@ -15,8 +16,10 @@ void on_request(http_request& request, http_response& response)
     {
         std::cout << header.first << ": " << header.second << std::endl;
     }
+    response.write_head(http_response::STATUS_OK);
+    response.write("<html><body>Sorry, there is no " + request.get_url() + "</body></html>");
+    response.done();
 }
-
 epoll_handler handler;
 
 void sig_handler(int signum)
@@ -40,10 +43,7 @@ int main()
     {
         sigaction(SIGTERM, &new_action, nullptr);
     }
-    http_server server("127.0.0.1", "20623", handler);
-    //server.connect_on_body(&on_body);
-    //server.connect_on_head(&on_head);
-    //server.connect_new_request(&on_request);
+    http_server server("127.0.0.1", "20624", handler);
     server.connect_on_request(&on_request);
     handler.start();
 }

@@ -173,6 +173,7 @@ void tcp_socket::write_all(const std::string & data) const
     {
         return;
     }
+    std::cout << "Writing: " << data << std::endl;
     ssize_t total_count = 0;
     ssize_t size = (ssize_t)data.length();
     while (total_count != size)
@@ -184,6 +185,7 @@ void tcp_socket::write_all(const std::string & data) const
         }
         total_count += count;
     }
+    std::cout << "Wrote " << total_count << " bytes" << std::endl;
 }
 
 std::string tcp_socket::read_all()
@@ -194,9 +196,11 @@ std::string tcp_socket::read_all()
     }
     std::string result;
     ssize_t total_count = 0;
-    while (true) {
-        try {
-            std::string chunk = read_data(std::min(CHUNK_SIZE, RESULT_SIZE - total_count) - 1);
+    while (true)
+    {
+        try
+        {
+            std::string chunk = read_data(std::min(CHUNK_SIZE, RESULT_SIZE - total_count));
             total_count += chunk.length();
             if (chunk == "")
             {
@@ -206,7 +210,9 @@ std::string tcp_socket::read_all()
             {
                 result += chunk;
             }
-        } catch (const tcp_exception&) {
+        }
+        catch (const tcp_exception& e)
+        {
             break;
         }
     }

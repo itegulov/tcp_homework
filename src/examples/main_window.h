@@ -2,6 +2,8 @@
 #define MAINWINDOW_H
 #include <QtWidgets/QMainWindow>
 #include "http_client.h"
+#include <thread>
+
 namespace Ui {
 class MainWindow;
 }
@@ -20,12 +22,19 @@ protected:
 
 private slots:
     void onConnected();
-    void onMessage(const char* msg);
+    void onMessage(http_client_request& request, const std::string& data, http_response& response);
+    void onMessage2(QByteArray array);
+    void onHeaders(http_client_request& request, http_response& response);
 
     void on_sendButton_clicked();
 
+signals:
+    void on_message(QByteArray array);
+
+
 private:
     Ui::MainWindow *ui;
+    std::thread thread;
     epoll_handler handler;
     http_client client;
 };

@@ -45,18 +45,40 @@ void tcp_client::connect()
 
         break;
     }
+    freeaddrinfo(servinfo);
 
     if (p == NULL) {
-        freeaddrinfo(servinfo);
         throw tcp_exception("Failed to connect");
     }
     socket_ = new tcp_socket(socket_fd, handler_);
-
-    freeaddrinfo(servinfo);
+    socket_->make_non_blocking();
     std::cout << "on_connect: yay" << std::endl;
     on_connect(*socket_);
     handler_.add(socket_);
-    socket_->connect_on_epoll([&](tcp_socket& socket)
+    socket_->connect_on_epoll([&](tcp_socket& socket){
+        std::cout << "on_epoll: proceed_connection enter" << std::endl;
+        std::exception_ptr eptr;
+        try {
+            socket.on_read(socket);
+            std::cout << "on_read: end" << std::endl;
+        }
+        catch (...)
+        {
+            std::cout << "exception?" << std::endl;
+            eptr = std::current_exception();
+        }
+
+        if (eptr != nullptr)
+        {
+            try {
+                std::rethrow_exception(eptr);
+            } catch(const std::exception& e) {
+                std::cout << e.what() << std::endl;
+                on_error(e);
+            }
+        }
+    });
+    socket_->connect_on_read([&](tcp_socket& socket)
         {
             std::cout << "on_epoll tcp_client eee" << std::endl;
             on_message(socket);

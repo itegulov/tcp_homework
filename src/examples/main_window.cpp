@@ -9,15 +9,22 @@
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow),
-    client("/chat", "localhost", "24500", handler)
+    thread([&](){
+        handler.start();
+    }),
+    client("localhost", "24501", "GET", "/chat", "???", "", handler)
 {
     ui->setupUi(this);
-    client.connect_on_connection(boost::bind(&MainWindow::onConnected, this));
-    client.connect_on_message(boost::bind(&MainWindow::onMessage, this, _1));
+    client.connect_on_connect(boost::bind(&MainWindow::onConnected, this));
+    client.connect_on_body(boost::bind(&MainWindow::onMessage, this, _1, _2, _3));
+    client.connect();
+    connect(this, SIGNAL(on_message(QByteArray)), this, SLOT(onMessage2(QByteArray)));
 }
 
 MainWindow::~MainWindow()
 {
+    handler.stop();
+    thread.join();
     delete ui;
 }
 
@@ -38,10 +45,24 @@ void MainWindow::onConnected()
     ui->sendButton->setEnabled(true);
 }
 
-void MainWindow::onMessage(const char * msg)
+void MainWindow::onMessage(http_client_request& request, const std::string& data, http_response& response)
 {
-    QLabel *label = new QLabel(QByteArray(msg), this);
+    /*
+    QLabel *label = new QLabel(QByteArray(data.c_str()), this);
     ui->chatLayout->addWidget(label);
+    */
+    on_message(QByteArray(data.c_str()));
+}
+
+void MainWindow::onMessage2(QByteArray array)
+{
+    QLabel *label = new QLabel(array, this);
+    ui->chatLayout->addWidget(label);
+}
+
+void MainWindow::onHeaders(http_client_request &request, http_response &response)
+{
+    std::cout << request.get_code() << " " << request.get_code_info() << std::endl;
 }
 
 void MainWindow::on_sendButton_clicked()

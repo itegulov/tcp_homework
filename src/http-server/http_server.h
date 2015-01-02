@@ -22,8 +22,18 @@ public:
         on_request.connect(function);
     }
 
+    template<typename T>
+    void connect_on_body(T function)
+    {
+        on_body.connect(function);
+    }
+
+    std::vector<std::pair<http_request&, http_response&> > get_connections() const;
+
+
 private:
     boost::signals2::signal<void (http_request&, http_response&)> on_request;
+    boost::signals2::signal<void (http_request&, const std::string&, http_response&)> on_body;
 
     void on_connection(tcp_socket& socket);
 

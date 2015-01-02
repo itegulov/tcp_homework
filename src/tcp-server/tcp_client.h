@@ -33,10 +33,18 @@ public:
         on_message.connect(function);
     }
 
+    template<typename T>
+    void connect_on_error(T function)
+    {
+        on_error.connect(function);
+    }
+
     void write(const std::string& data);
 private:
     boost::signals2::signal<void (tcp_socket&)> on_connect;
     boost::signals2::signal<void (tcp_socket&)> on_message;
+    boost::signals2::signal<void (const std::exception&)> on_error;
+
     static void *get_in_addr(struct sockaddr *sa);
     tcp_socket* socket_;
     const std::string address_;

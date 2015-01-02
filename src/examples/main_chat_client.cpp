@@ -4,7 +4,6 @@
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
-    epoll_handler handler;
     MainWindow w;
     w.show();
 
