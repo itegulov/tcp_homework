@@ -43,8 +43,6 @@ private:
     boost::signals2::signal<void (const std::exception&)> on_error;
     void accept_connection(tcp_socket& socket);
     void proceed_connection(tcp_socket& socket);
-
-    tcp_socket* main_socket_;
 };
 
 #endif //TCP_SERVER_H

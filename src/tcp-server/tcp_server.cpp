@@ -10,12 +10,12 @@ tcp_server::~tcp_server()
 
 tcp_server::tcp_server(const std::string& address, const std::string& service, epoll_handler& handler, int max_pending_connections)
 {
-    main_socket_ = new tcp_socket(-1, handler);
-    main_socket_->bind(address, service);
-    main_socket_->make_non_blocking();
-    main_socket_->listen(max_pending_connections);
-    main_socket_->on_epoll.connect(boost::bind(&tcp_server::accept_connection, this, _1));
-    handler.add(main_socket_);
+    tcp_socket* main_socket = new tcp_socket(-1, handler);
+    main_socket->bind(address, service);
+    main_socket->make_non_blocking();
+    main_socket->listen(max_pending_connections);
+    main_socket->on_epoll.connect(boost::bind(&tcp_server::accept_connection, this, _1));
+    handler.add(main_socket);
 }
 
 void tcp_server::accept_connection(tcp_socket& socket)

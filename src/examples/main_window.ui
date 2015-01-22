@@ -17,9 +17,9 @@
    <widget class="QScrollArea" name="scrollArea">
     <property name="geometry">
      <rect>
-      <x>9</x>
-      <y>-1</y>
-      <width>382</width>
+      <x>0</x>
+      <y>0</y>
+      <width>411</width>
       <height>247</height>
      </rect>
     </property>
@@ -37,7 +37,7 @@
       <rect>
        <x>0</x>
        <y>0</y>
-       <width>367</width>
+       <width>396</width>
        <height>245</height>
       </rect>
      </property>
@@ -53,11 +53,27 @@
      <rect>
       <x>10</x>
       <y>250</y>
-      <width>239</width>
+      <width>401</width>
       <height>29</height>
      </rect>
     </property>
     <layout class="QHBoxLayout" name="horizontalLayout">
+     <item>
+      <widget class="QPushButton" name="sendButton">
+       <property name="enabled">
+        <bool>false</bool>
+       </property>
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="text">
+        <string>Send</string>
+       </property>
+      </widget>
+     </item>
      <item>
       <widget class="QLineEdit" name="textLineEdit">
        <property name="placeholderText">
@@ -65,18 +81,11 @@
        </property>
       </widget>
      </item>
-     <item>
-      <widget class="QPushButton" name="sendButton">
-       <property name="enabled">
-        <bool>false</bool>
-       </property>
-       <property name="text">
-        <string>Send</string>
-       </property>
-      </widget>
-     </item>
     </layout>
    </widget>
+   <zorder>scrollArea</zorder>
+   <zorder>layoutWidget</zorder>
+   <zorder>sendButton</zorder>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">

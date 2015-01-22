@@ -47,10 +47,7 @@ void MainWindow::onConnected()
 
 void MainWindow::onMessage(http_client_request& request, const std::string& data, http_response& response)
 {
-    /*
-    QLabel *label = new QLabel(QByteArray(data.c_str()), this);
-    ui->chatLayout->addWidget(label);
-    */
+    //Because of QT i need to move to main thread
     on_message(QByteArray(data.c_str()));
 }
 
@@ -69,4 +66,5 @@ void MainWindow::on_sendButton_clicked()
 {
     std::string s = ui->textLineEdit->text().toStdString() + "\r\n";
     client.write(s);
+    ui->textLineEdit->setText("");
 }

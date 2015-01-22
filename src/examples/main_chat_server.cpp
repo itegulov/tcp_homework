@@ -26,9 +26,12 @@ void on_request(http_request& request, http_response& response)
 void on_body(http_request& request, const std::string& data, http_response& response)
 {
     std::vector<std::pair<http_request&, http_response&> > vector = server.get_connections();
+    const std::map<std::string, std::string>& headers = (request).get_headers();
+    std::string s = (*headers.find("Host")).second;
+    std::string new_s = s + ": " + data;
     for (auto it = vector.begin(); it != vector.end(); it++)
     {
-        (*it).second.write(data);
+        (*it).second.write(new_s);
     }
 }
 
