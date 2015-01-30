@@ -5,6 +5,8 @@
 
 #include <QtNetwork/QHostAddress>
 #include <QtWidgets/QLabel>
+#include <QtWidgets/QInputDialog>
+#include <QDir>
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -12,13 +14,23 @@ MainWindow::MainWindow(QWidget *parent) :
     thread([&](){
         handler.start();
     }),
-    client("localhost", "24500", "GET", "/chat", "???", "Connection: Keep-Alive", handler)
+    client("localhost", "24500", "GET", "/chat", "Connection: Keep-Alive", handler)
 {
+    bool ok;
+    QString username = QInputDialog::getText(this, tr("Chat user name"),
+                                            tr("User name:"), QLineEdit::Normal,
+                                            QDir::home().dirName(), &ok);
+    if (!ok)
+    {
+        username = "???";
+    }
+    client.set_domain(username.toStdString());
     ui->setupUi(this);
     client.connect_on_connect(boost::bind(&MainWindow::onConnected, this));
     client.connect_on_body(boost::bind(&MainWindow::onMessage, this, _1, _2, _3));
     client.connect();
     connect(this, SIGNAL(on_message(QByteArray)), this, SLOT(onMessage2(QByteArray)));
+    connect(ui->textLineEdit, SIGNAL(returnPressed()), this, SLOT(on_sendButton_clicked()));
 }
 
 MainWindow::~MainWindow()

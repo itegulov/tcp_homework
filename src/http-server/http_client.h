@@ -10,7 +10,7 @@ struct http_client
 public:
 
     http_client(const std::string &address, const std::string &service, const std::string &method,
-                const std::string &url, const std::string& domain, const std::string& headers, epoll_handler &handler);
+                const std::string &url, const std::string& headers, epoll_handler &handler);
     ~http_client();
 
     void connect();
@@ -33,6 +33,12 @@ public:
     {
         on_body.connect(function);
     }
+
+    void set_domain(const std::string& domain)
+    {
+        domain_ = domain;
+    }
+
 private:
     boost::signals2::signal<void (http_client_request&, http_response&)> on_response;
     boost::signals2::signal<void (tcp_socket&)> on_connect;

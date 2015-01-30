@@ -1,6 +1,8 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 #include <QtWidgets/QMainWindow>
+#include <QtWidgets/QTextEdit>
+#include <QKeyEvent>
 #include "http_client.h"
 #include <thread>
 

@@ -22,13 +22,13 @@ add_library(http_client STATIC src/http-server/http_client.cpp src/http-server/h
 add_custom_target(http_server_api SOURCES src/http-server/http_server_api.h)
 add_custom_target(tcp_server_api SOURCES src/tcp-server/tcp_server_api.h)
 QT5_WRAP_UI(UIS_HDRS
-    src/examples/main_window.ui
+    src/examples/chat/main_window.ui
 )
 add_executable(tcp_server_exec src/examples/main_server.cpp)
 add_executable(tcp_client_exec src/examples/main_client.cpp)
 add_executable(http_server_exec src/examples/main_http_server.cpp)
-add_executable(chat_server_exec src/examples/main_chat_server.cpp)
-add_executable(chat_client_exec src/examples/main_chat_client.cpp src/examples/main_window.cpp ${UIS_HDRS})
+add_executable(chat_server_exec src/examples/chat/main_chat_server.cpp)
+add_executable(chat_client_exec src/examples/chat/main_chat_client.cpp src/examples/chat/main_window.cpp ${UIS_HDRS})
 target_link_libraries(tcp_server_exec tcp_server ${Boost_LIBRARIES})
 target_link_libraries(tcp_client_exec tcp_client ${Boost_LIBRARIES})
 target_link_libraries(http_server_exec http_server tcp_server ${Boost_LIBRARIES})

@@ -15,9 +15,7 @@ tcp_socket::tcp_socket(const tcp_socket &other): handler_(other.handler_), fd_(o
 
 tcp_socket::~tcp_socket()
 {
-    std::cout << "Deleting socket " << fd_ << std::endl;
     close();
-    //server->handler->remove(this);
 }
 
 void tcp_socket::close()

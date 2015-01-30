@@ -8,7 +8,6 @@ http_parser::http_parser()
 
 void http_parser::parse(std::string data)
 {
-    std::cout << "DATA: " << "\"" << data << "\"" << std::endl;
     std::cout << pos_ << std::endl;
     int n = data.length();
     char p1 = 'a';
@@ -33,17 +32,14 @@ void http_parser::parse(std::string data)
 
     if (pos_ == BODY)
     {
-        std::cout << "I'm on body now" << std::endl;
         on_body(data);
     }
     else
     {
-        std::cout << "LEFT: " << "\"" << data << "\"" << std::endl;
         n = data.length();
         std::cout << n << std::endl;
         for (int i = 0; i < n; i++)
         {
-            std::cout << "!\"->" << data[i] << "<-\"!" << std::endl;
             if ((p3 == '\r' && p2 == '\n' && p1 == '\r' && data[i] == '\n') // CRLF CRLF
             || (p1 == '\n' && data[i] == '\n')) { // LF LF
                 pos_ = BODY;
@@ -101,7 +97,7 @@ void http_parser::parse_headers(const std::string &headers)
     for (std::vector<std::string>::iterator it = lines.begin(); it != lines.end(); it++)
     {
         size_t pos = it->find_first_of(':');
-        if (pos == std::string::npos) continue; //BIDLOKOD
+        if (pos == std::string::npos) continue;
         assert(pos != std::string::npos);
         on_header(it->substr(0, pos), it->substr(pos + 2));
     }
@@ -116,7 +112,6 @@ http_client_parser::http_client_parser()
 
 void http_client_parser::parse(std::string data)
 {
-    std::cout << "DATA: " << "\"" << data << "\"" << std::endl;
     std::cout << pos_ << std::endl;
     int n = data.length();
     char p1 = 'a';
@@ -145,12 +140,10 @@ void http_client_parser::parse(std::string data)
     }
     else
     {
-        std::cout << "LEFT: " << "\"" << data << "\"" << std::endl;
         n = data.length();
         std::cout << n << std::endl;
         for (int i = 0; i < n; i++)
         {
-            std::cout << "!\"->" << data[i] << "<-\"!" << std::endl;
             if ((p3 == '\r' && p2 == '\n' && p1 == '\r' && data[i] == '\n') // CRLF CRLF
             || (p1 == '\n' && data[i] == '\n')) { // LF LF
                 pos_ = BODY;
@@ -201,7 +194,7 @@ void http_client_parser::parse_headers(const std::string &headers)
     for (std::vector<std::string>::iterator it = lines.begin(); it != lines.end(); it++)
     {
         size_t pos = it->find_first_of(':');
-        if (pos == std::string::npos) continue; //BIDLOKOD
+        if (pos == std::string::npos) continue;
         assert(pos != std::string::npos);
         on_header(it->substr(0, pos), it->substr(pos + 2));
     }

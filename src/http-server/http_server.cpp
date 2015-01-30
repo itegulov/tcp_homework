@@ -21,7 +21,6 @@ std::vector<std::pair<http_request &, http_response &> > http_server::get_connec
 
 void http_server::on_connection(tcp_socket& socket)
 {
-    std::cout << "New connection accepted!" << std::endl;
     http_request* request = new http_request(socket);
     request->connect_on_headers_end([this](http_request& request, http_response& response){
         on_request(request, response);

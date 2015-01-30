@@ -3,10 +3,9 @@
 #include "http_response.h"
 
 http_client::http_client(const std::string &address, const std::string &service, const std::string &method,
-                         const std::string &url, const std::string& domain, const std::string& headers, epoll_handler &handler):
+                         const std::string &url, const std::string& headers, epoll_handler &handler):
     method_(method),
     url_(url),
-    domain_(domain),
     headers_(headers),
     client_(address, service, handler)
 {

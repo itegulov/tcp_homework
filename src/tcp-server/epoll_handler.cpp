@@ -27,7 +27,6 @@ void epoll_handler::start()
     while (running_)
     {
         int n = epoll_wait(epoll_fd_, events, MAX_EVENTS, -1);
-        std::cout << "New events count: " << n << std::endl;
         if (n == -1 && errno == EINTR)
         {
             sockets.clear();
@@ -36,7 +35,6 @@ void epoll_handler::start()
         }
         for (int i = 0; i < n; i++)
         {
-            std::cout << "New event: " << events[i].data.fd << std::endl;
             if ((events[i].events & EPOLLERR) ||
                 (events[i].events & EPOLLHUP) ||
                 (!(events[i].events & EPOLLIN)))
@@ -58,25 +56,22 @@ void epoll_handler::start()
                 socket->on_epoll(*socket);
                 if (!socket->is_open())
                 {
-                    std::cout << "Erasing fd: " << socket->get_descriptor() << std::endl;
                     sockets.erase(socket->get_descriptor());
                 }
             }
         }
     }
     ::close(epoll_fd_);
-    //TODO: remove it
+    ::close(event_fd_);
 }
 
 void epoll_handler::stop()
 {
-    std::cout << "Stopping epoll_handler" << std::endl;
     assert(eventfd_write(event_fd_, 1) != -1);
 }
 
 void epoll_handler::add(tcp_socket* socket)
 {
-    std::cout << "Adding to epoll_handler: " << socket->get_descriptor() << std::endl;
     epoll_event event;
     memset(&event, 0, sizeof event);
     event.data.fd = socket->get_descriptor();

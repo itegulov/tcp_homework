@@ -4,6 +4,8 @@
 
 #include "boost/bind.hpp"
 
+//HTTP_SERVER_REQUEST
+
 http_request::http_request(tcp_socket &socket):
     socket_(socket),
     response_(socket)
@@ -22,17 +24,13 @@ http_request::http_request(tcp_socket &socket):
         headers_[name] = value;
     });
     parser_.connect_on_headers_end([this](){
-        std::cout << "Headers end" << std::endl;
         on_headers_end(*this, response_);
     });
     parser_.connect_on_body([this](const std::string& body){
-        std::cout << "On body!" << std::endl;
         on_body(*this, body, response_);
     });
     socket_.connect_on_read([&](tcp_socket& socket) {
-        std::cout << "WUTS GOING ON?!" << std::endl;
         std::string data = socket.read_all();
-        std::cout << "GOT " << data << std::endl;
         parser_.parse(data);
     });
 }
@@ -82,16 +80,13 @@ http_client_request::http_client_request(tcp_socket &socket):
         headers_[name] = value;
     });
     parser_.connect_on_headers_end([this](){
-        std::cout << "Headers end" << std::endl;
         on_headers_end(*this, response_);
     });
     parser_.connect_on_body([this](const std::string& body){
-        std::cout << "On data!" << std::endl;
         on_body(*this, body, response_);
     });
     socket_.connect_on_read([&](tcp_socket& socket) {
         std::string data = socket.read_all();
-        std::cout << "GOT " << data << std::endl;
         parser_.parse(data);
     });
 }
