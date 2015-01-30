@@ -4,16 +4,16 @@
 
 void on_connect(tcp_socket& socket)
 {
-    socket.write_data("Hello, world!\0");
+    socket.write_all("Hello, world!\0");
 }
 
 void on_message(tcp_socket& socket)
 {
-    std::string s = socket.read_data(512);
+    std::string s = socket.read_all();
     std::cout << "Client: received '" << s << "'" << std::endl;
     if (s == "Hello, world!")
     {
-        socket.write_data("Good bye, world!\0");
+        socket.write_all("Good bye, world!\0");
     }
     else
     {

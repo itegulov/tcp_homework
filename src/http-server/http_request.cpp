@@ -26,6 +26,7 @@ http_request::http_request(tcp_socket &socket):
         on_headers_end(*this, response_);
     });
     parser_.connect_on_body([this](const std::string& body){
+        std::cout << "On body!" << std::endl;
         on_body(*this, body, response_);
     });
     socket_.connect_on_read([&](tcp_socket& socket) {
@@ -85,10 +86,10 @@ http_client_request::http_client_request(tcp_socket &socket):
         on_headers_end(*this, response_);
     });
     parser_.connect_on_body([this](const std::string& body){
+        std::cout << "On data!" << std::endl;
         on_body(*this, body, response_);
     });
     socket_.connect_on_read([&](tcp_socket& socket) {
-        std::cout << "WUTS GOING ON?!" << std::endl;
         std::string data = socket.read_all();
         std::cout << "GOT " << data << std::endl;
         parser_.parse(data);

@@ -8,6 +8,13 @@
 #include <netinet/in.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <stdlib.h>
+#include <cstdio>
+#include <string>
+#include <cstring>
+#include <errno.h>
+#include <stdexcept>
+#include <utility>
 
 #include "tcp_server_api.h"
 
@@ -32,10 +39,8 @@ public:
     void make_non_blocking();
     void listen(int max_pending_connections);
 
-    std::string read_data(ssize_t max_size);
-    ssize_t write_data(const std::string & data) const;
     std::string read_all();
-    void write_all(const std::string & data) const;
+    void write_all(const std::string & data);
 
     template<typename T>
     void connect_on_read(T function) {
@@ -64,6 +69,8 @@ private:
     boost::signals2::signal<void (tcp_socket&)> on_close;
     boost::signals2::signal<void (tcp_socket&)> on_read;
     boost::signals2::signal<void (tcp_socket&)> on_epoll;
+
+    void revert_flag(int flag);
 
     int fd_;
     bool is_open_;

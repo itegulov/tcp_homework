@@ -12,7 +12,7 @@ http_client::http_client(const std::string &address, const std::string &service,
 {
     client_.connect_on_connect([&](tcp_socket& socket){
         on_connect(socket);
-        socket.write_all(method_ + " " + url_ + " HTTP/1.0\nHost: " + domain_ + "\n" + headers_ + "\r\n\r\n\r\n");
+        socket.write_all(method_ + " " + url_ + " HTTP/1.0\nHost: " + domain_ + "\n" + headers_ + "\r\n\r\n");
         request_ = new http_client_request(socket);
         request_->connect_on_headers_end([&](http_client_request& request, http_response& response){
             on_response(request, response);

@@ -37,7 +37,7 @@ void http_response::write_head(http_response::status_code code)
     string_stream << "HTTP/1.1 " << status << " " << "code" << "\r\n";
     socket_.write_all(string_stream.str());
     write_headers();
-    socket_.write_all("\r\n\r\n");
+    socket_.write_all("\r\n");
     header_writen_ = true;
     std::cout << "WRITING HEAD" << std::endl;
 }

@@ -27,7 +27,10 @@ void http_server::on_connection(tcp_socket& socket)
         on_request(request, response);
     });
     request->connect_on_body([this](http_request& request, const std::string& data, http_response& response){
-        on_body(request, data, response);
+        if (data != "")
+        {
+            on_body(request, data, response);
+        }
     });
     requests_.push_back(std::unique_ptr<http_request>(request));
 

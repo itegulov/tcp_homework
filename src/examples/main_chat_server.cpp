@@ -7,7 +7,7 @@
 #include <csignal>
 
 epoll_handler handler;
-http_server server("127.0.0.1", "24501", handler);
+http_server server("127.0.0.1", "24500", handler);
 
 void on_request(http_request& request, http_response& response)
 {
@@ -16,21 +16,28 @@ void on_request(http_request& request, http_response& response)
     std::cout << request.get_url() << std::endl;
     std::cout << request.get_major_version() << " " << request.get_minor_version() << std::endl;
     const std::map<std::string, std::string>& headers = request.get_headers();
+    bool alive = true;
     for (auto header : headers)
     {
         std::cout << header.first << ": " << header.second << std::endl;
     }
     response.write_head(http_response::STATUS_OK);
+    if (!alive)
+    {
+        response.done();
+    }
 }
 
 void on_body(http_request& request, const std::string& data, http_response& response)
 {
+    std::cout << "Going to response" << std::endl;
     std::vector<std::pair<http_request&, http_response&> > vector = server.get_connections();
     const std::map<std::string, std::string>& headers = (request).get_headers();
     std::string s = (*headers.find("Host")).second;
     std::string new_s = s + ": " + data;
     for (auto it = vector.begin(); it != vector.end(); it++)
     {
+        std::cout << (*it).first.get_url() << std::endl;
         (*it).second.write(new_s);
     }
 }

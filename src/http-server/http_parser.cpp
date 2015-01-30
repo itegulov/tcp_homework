@@ -9,6 +9,7 @@ http_parser::http_parser()
 void http_parser::parse(std::string data)
 {
     std::cout << "DATA: " << "\"" << data << "\"" << std::endl;
+    std::cout << pos_ << std::endl;
     int n = data.length();
     char p1 = 'a';
     char p2 = 'a';
@@ -23,7 +24,7 @@ void http_parser::parse(std::string data)
             {
                 starting_line = data.substr(0, i);
                 parse_starting_line(starting_line);
-                data = data.substr(i);
+                data = data.substr(i - 1);
                 pos_ = HEAD;
                 break;
             }
@@ -32,6 +33,7 @@ void http_parser::parse(std::string data)
 
     if (pos_ == BODY)
     {
+        std::cout << "I'm on body now" << std::endl;
         on_body(data);
     }
     else
@@ -115,6 +117,7 @@ http_client_parser::http_client_parser()
 void http_client_parser::parse(std::string data)
 {
     std::cout << "DATA: " << "\"" << data << "\"" << std::endl;
+    std::cout << pos_ << std::endl;
     int n = data.length();
     char p1 = 'a';
     char p2 = 'a';
@@ -129,7 +132,7 @@ void http_client_parser::parse(std::string data)
             {
                 starting_line = data.substr(0, i);
                 parse_starting_line(starting_line);
-                data = data.substr(i);
+                data = data.substr(i - 1);
                 pos_ = HEAD;
                 break;
             }

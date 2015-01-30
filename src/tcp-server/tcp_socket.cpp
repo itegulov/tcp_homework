@@ -118,74 +118,19 @@ void tcp_socket::listen(int max_pending_connections)
     }
 }
 
-std::string tcp_socket::read_data(ssize_t max_size)
-{
-    if (!is_open())
-    {
-        return 0;
-    }
-    const unsigned int MAX_BUF_LENGTH = 4096;
-    std::vector<char> buffer(MAX_BUF_LENGTH);
-    std::string rcv;
-    ssize_t count = 0;
-    ssize_t total_count = 0;
-    do {
-        count = recv(fd_, buffer.data(), std::min((ssize_t)buffer.size(), max_size - total_count), 0);
-        if ( count == -1 ) {
-            if (errno != EAGAIN)
-            {
-                close();
-                throw tcp_exception(strerror(errno));
-            }
-            break;
-        }
-        else if (count == 0)
-        {
-            close();
-            break;
-        }
-        else
-        {
-            rcv.append(buffer.cbegin(), buffer.cbegin() + count);
-            total_count += count;
-        }
-    } while (total_count < count);
-    return rcv;
-}
-
-ssize_t tcp_socket::write_data(const std::string & data) const
-{
-    if (!is_open())
-    {
-        return 0;
-    }
-    ssize_t count = send(fd_, data.c_str(), data.length(), 0);
-    if (count == -1)
-    {
-        throw tcp_exception(strerror(errno));
-    }
-    return count;
-}
-
-void tcp_socket::write_all(const std::string & data) const
+void tcp_socket::write_all(const std::string & data)
 {
     if (!is_open())
     {
         return;
     }
-    std::cout << "Writing: " << data << std::endl;
-    ssize_t total_count = 0;
-    ssize_t size = (ssize_t)data.length();
-    while (total_count != size)
+    revert_flag(O_NONBLOCK);
+    int written = write(fd_, data.c_str(), data.length());
+    if (written == -1)
     {
-        ssize_t count = write_data(data.substr(total_count, std::string::npos));
-        if (count <= 0)
-        {
-            break;
-        }
-        total_count += count;
+        throw tcp_exception("couldn't send data");
     }
-    std::cout << "Wrote " << total_count << " bytes" << std::endl;
+    revert_flag(O_NONBLOCK);
 }
 
 std::string tcp_socket::read_all()
@@ -194,27 +139,24 @@ std::string tcp_socket::read_all()
     {
         return "";
     }
-    std::string result;
-    ssize_t total_count = 0;
-    while (true)
-    {
-        try
-        {
-            std::string chunk = read_data(std::min(CHUNK_SIZE, RESULT_SIZE - total_count));
-            total_count += chunk.length();
-            if (chunk == "")
-            {
-                break;
-            }
-            else
-            {
-                result += chunk;
-            }
-        }
-        catch (const tcp_exception& e)
-        {
-            break;
-        }
+    std::string ret;
+    int len = 0;
+    ioctl(fd_, FIONREAD, &len);
+    if (len > 0) {
+        char buf[len];
+        len = read(fd_, buf, len);
+        ret.append(buf, (size_t) len);
+        return ret;
+    } else return "";
+}
+
+void tcp_socket::revert_flag(int flag) {
+    int flags = fcntl(fd_, F_GETFL, 0);
+    if (flags == -1) {
+        throw std::runtime_error(strerror(errno));
     }
-    return result;
+    flags ^= flag;
+    if (fcntl(fd_, F_SETFL, flags) == -1) {
+        throw std::runtime_error(strerror(errno));
+    }
 }

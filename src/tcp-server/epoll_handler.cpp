@@ -3,7 +3,6 @@
 
 #include <iostream>
 #include <cassert>
-//TODO: unique_ptr
 
 epoll_handler::epoll_handler()
 {

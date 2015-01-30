@@ -12,7 +12,7 @@ MainWindow::MainWindow(QWidget *parent) :
     thread([&](){
         handler.start();
     }),
-    client("localhost", "24501", "GET", "/chat", "???", "", handler)
+    client("localhost", "24500", "GET", "/chat", "???", "Connection: Keep-Alive", handler)
 {
     ui->setupUi(this);
     client.connect_on_connect(boost::bind(&MainWindow::onConnected, this));
