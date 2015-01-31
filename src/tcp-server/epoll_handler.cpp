@@ -27,6 +27,7 @@ void epoll_handler::start()
     while (running_)
     {
         int n = epoll_wait(epoll_fd_, events, MAX_EVENTS, -1);
+        std::cout << "Got " << n << " events" << std::endl;
         if (n == -1 && errno == EINTR)
         {
             sockets.clear();
@@ -35,12 +36,16 @@ void epoll_handler::start()
         }
         for (int i = 0; i < n; i++)
         {
+            std::cout << "Got event: " << events[i].events << std::endl;
             if ((events[i].events & EPOLLERR) ||
                 (events[i].events & EPOLLHUP) ||
                 (!(events[i].events & EPOLLIN)))
             {
                 //Erorr occured
+                std::cout << "Error occured" << std::endl;
                 std::shared_ptr<tcp_socket>& socket = sockets[events[i].data.fd];
+                std::cout << "Error on socket: " << socket->get_descriptor() << std::endl;
+                on_error(*socket);
                 sockets.erase(socket->get_descriptor());
                 continue;
             }

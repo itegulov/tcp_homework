@@ -39,7 +39,7 @@ public:
 
 private:
     boost::signals2::signal<void (http_request&, http_response&)> on_request;
-    boost::signals2::signal<void (http_request&, const std::string&, http_response&)> on_body;
+    boost::signals2::signal<void (http_request&, const std::string&, http_response&, http_server&)> on_body;
     boost::signals2::signal<void (const std::exception&)> on_error;
 
     void on_connection(tcp_socket& socket);

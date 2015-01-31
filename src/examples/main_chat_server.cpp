@@ -6,15 +6,12 @@
 #include <iostream>
 #include <csignal>
 
-epoll_handler handler;
-http_server server("127.0.0.1", "24500", handler);
-
 void on_request(http_request& request, http_response& response)
 {
     response.write_head(http_response::STATUS_OK);
 }
 
-void on_body(http_request& request, const std::string& data, http_response& response)
+void on_body(http_request& request, const std::string& data, http_response& responsed, http_server& server)
 {
     std::vector<std::pair<http_request&, http_response&> > vector = server.get_connections();
     const std::map<std::string, std::string>& headers = (request).get_headers();
@@ -32,11 +29,13 @@ void on_error(const std::exception& e) {
 
 void sig_handler(int signum)
 {
-    handler.stop();
+
 }
 
 int main()
 {
+    epoll_handler handler;
+    http_server server("127.0.0.1", "24500", handler);
     struct sigaction new_action, old_action;
     new_action.sa_handler = sig_handler;
     sigemptyset(&new_action.sa_mask);

@@ -6,6 +6,7 @@
 #include <QtNetwork/QHostAddress>
 #include <QtWidgets/QLabel>
 #include <QtWidgets/QInputDialog>
+#include <QtWidgets/QScrollBar>
 #include <QDir>
 
 MainWindow::MainWindow(QWidget *parent) :
@@ -20,6 +21,7 @@ MainWindow::MainWindow(QWidget *parent) :
     QString username = QInputDialog::getText(this, tr("Chat user name"),
                                             tr("User name:"), QLineEdit::Normal,
                                             QDir::home().dirName(), &ok);
+    std::cout << username.toStdString() << std::endl;
     if (!ok)
     {
         username = "???";
@@ -65,8 +67,7 @@ void MainWindow::onMessage(http_client_request& request, const std::string& data
 
 void MainWindow::onMessage(QByteArray array)
 {
-    QLabel *label = new QLabel(array, this);
-    ui->chatLayout->addWidget(label);
+    ui->textEdit->append(QString::fromUtf8(array));
 }
 
 void MainWindow::onHeaders(http_client_request &request, http_response &response)

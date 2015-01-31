@@ -10,13 +10,16 @@ http_client::http_client(const std::string &address, const std::string &service,
     client_(address, service, handler)
 {
     client_.connect_on_connect([&](tcp_socket& socket){
+        std::cout << "On connect" << std::endl;
         on_connect(socket);
         socket.write_all(method_ + " " + url_ + " HTTP/1.0\nHost: " + domain_ + "\n" + headers_ + "\r\n\r\n");
         request_ = std::unique_ptr<http_client_request>(new http_client_request(socket));
         request_->connect_on_headers_end([&](http_client_request& request, http_response& response){
+            std::cout << "On response" << std::endl;
             on_response(request, response);
         });
         request_->connect_on_body([this](http_client_request& request, const std::string& data, http_response& response){
+            std::cout << "On body" << std::endl;
             on_body(request, data, response);
         });
     });
@@ -28,10 +31,12 @@ http_client::~http_client()
 
 void http_client::connect()
 {
+    std::cout << "Connect" << std::endl;
     client_.connect();
 }
 
 void http_client::write(const std::string &data)
 {
+    std::cout << "Writes" << std::endl;
     client_.write(data);
 }

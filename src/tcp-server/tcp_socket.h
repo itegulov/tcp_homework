@@ -60,9 +60,6 @@ public:
     }
 
 private:
-    static const ssize_t CHUNK_SIZE = 512;
-    static const ssize_t RESULT_SIZE = 8192;
-    static constexpr const char* EMPTY_STR = "";
 
     epoll_handler& handler_;
 

@@ -21,7 +21,6 @@ void on_message(tcp_socket& socket)
     }
 }
 
-epoll_handler handler;
 
 void sig_handler(int signum)
 {
@@ -29,6 +28,8 @@ void sig_handler(int signum)
 
 int main()
 {
+    epoll_handler handler;
+
     struct sigaction new_action, old_action;
     new_action.sa_handler = sig_handler;
     sigemptyset(&new_action.sa_mask);

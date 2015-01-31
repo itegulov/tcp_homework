@@ -10,14 +10,12 @@ tcp_server::~tcp_server()
 
 tcp_server::tcp_server(const std::string& address, const std::string& service, epoll_handler& handler, int max_pending_connections)
 {
-    std::unique_ptr<tcp_socket> main_socket(new tcp_socket(-1, handler));
+    std::shared_ptr<tcp_socket> main_socket(new tcp_socket(-1, handler));
     main_socket->bind(address, service);
     main_socket->make_non_blocking();
     main_socket->listen(max_pending_connections);
     main_socket->on_epoll.connect(boost::bind(&tcp_server::accept_connection, this, _1));
-    std::cout << "BEFORE MOVE" << std::endl;
-    handler.add(std::move(main_socket));
-    std::cout << "AFTER MOVE" << std::endl;
+    handler.add(main_socket);
 }
 
 void tcp_server::accept_connection(tcp_socket& socket)
@@ -50,7 +48,6 @@ void tcp_server::accept_connection(tcp_socket& socket)
         }
         catch(const tcp_exception& e)
         {
-            //delete accepted_socket;
             on_error(tcp_exception("couldn't make socket non blocking"));
             continue;
         }
@@ -70,6 +67,14 @@ void tcp_server::accept_connection(tcp_socket& socket)
         }
 
         accepted_socket->on_epoll.connect(boost::bind(&tcp_server::proceed_connection, this, _1));
+        try {
+            socket.handler_.add(accepted_socket);
+        }
+        catch (...)
+        {
+            on_error(tcp_exception("couldn't add socket to epoll handler"));
+            continue;
+        }
 
         std::exception_ptr eptr;
         try {
@@ -87,16 +92,6 @@ void tcp_server::accept_connection(tcp_socket& socket)
             } catch(const std::exception& e) {
                 on_error(e);
             }
-        }
-
-        try {
-            socket.handler_.add(std::move(accepted_socket));
-        }
-        catch (...)
-        {
-            //delete accepted_socket;
-            on_error(tcp_exception("couldn't add socket to epoll handler"));
-            continue;
         }
     }
 }
