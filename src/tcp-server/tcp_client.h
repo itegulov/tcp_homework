@@ -46,7 +46,7 @@ private:
     boost::signals2::signal<void (const std::exception&)> on_error;
 
     static void *get_in_addr(struct sockaddr *sa);
-    tcp_socket* socket_;
+    std::shared_ptr<tcp_socket> socket_;
     const std::string address_;
     const std::string service_;
     epoll_handler& handler_;

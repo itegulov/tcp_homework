@@ -40,7 +40,7 @@ void epoll_handler::start()
                 (!(events[i].events & EPOLLIN)))
             {
                 //Erorr occured
-                std::unique_ptr<tcp_socket>& socket = sockets[events[i].data.fd];
+                std::shared_ptr<tcp_socket>& socket = sockets[events[i].data.fd];
                 sockets.erase(socket->get_descriptor());
                 continue;
             }
@@ -52,7 +52,7 @@ void epoll_handler::start()
             }
             else
             {
-                std::unique_ptr<tcp_socket>& socket = sockets[events[i].data.fd];
+                std::shared_ptr<tcp_socket>& socket = sockets[events[i].data.fd];
                 socket->on_epoll(*socket);
                 if (!socket->is_open())
                 {
@@ -67,10 +67,10 @@ void epoll_handler::start()
 
 void epoll_handler::stop()
 {
-    assert(eventfd_write(event_fd_, 1) != -1);
+    eventfd_write(event_fd_, 1);
 }
 
-void epoll_handler::add(tcp_socket* socket)
+void epoll_handler::add(std::shared_ptr<tcp_socket> socket)
 {
     epoll_event event;
     memset(&event, 0, sizeof event);
@@ -81,7 +81,7 @@ void epoll_handler::add(tcp_socket* socket)
     {
         throw std::runtime_error(strerror(errno));
     }
-    sockets.insert(std::pair<int, std::unique_ptr<tcp_socket> >(socket->get_descriptor(), std::unique_ptr<tcp_socket>(socket)));
+    sockets.insert(std::pair<int, std::shared_ptr<tcp_socket> >(socket->get_descriptor(), socket));
 }
 
 void epoll_handler::create_event_fd()

@@ -49,10 +49,9 @@ void tcp_client::connect()
     if (p == NULL) {
         throw tcp_exception("Failed to connect");
     }
-    socket_ = new tcp_socket(socket_fd, handler_);
+    socket_ = std::shared_ptr<tcp_socket>(new tcp_socket(socket_fd, handler_));
     socket_->make_non_blocking();
     on_connect(*socket_);
-    handler_.add(socket_);
     socket_->connect_on_epoll([&](tcp_socket& socket){
         std::exception_ptr eptr;
         try {
@@ -80,6 +79,7 @@ void tcp_client::connect()
         {
             socket.handler_.stop();
         });
+    handler_.add(socket_);
 }
 
 void tcp_client::write(const std::string& data)
