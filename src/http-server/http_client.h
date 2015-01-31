@@ -4,6 +4,7 @@
 #include "tcp_client.h"
 #include "http_request.h"
 #include "http_response.h"
+#include "boost/optional.hpp"
 
 struct http_client
 {
@@ -50,7 +51,7 @@ private:
     std::string headers_;
 
     tcp_client client_;
-    http_client_request* request_ = nullptr;
+    std::unique_ptr<http_client_request> request_;
 };
 
 #endif // HTTP_CLIENT_H
