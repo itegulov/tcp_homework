@@ -7,6 +7,9 @@ http_server::http_server(const std::string& address, const std::string& service,
     : tcp_server_(address, service, handler, 15)
 {
     tcp_server_.connect_on_connection(boost::bind(&http_server::on_connection, this, _1));
+    tcp_server_.connect_on_error([=](const std::exception& e){
+        on_error(e);
+    });
 }
 
 std::vector<std::pair<http_request &, http_response &> > http_server::get_connections() const

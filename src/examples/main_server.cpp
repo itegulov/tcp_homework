@@ -17,15 +17,12 @@ void just_get(tcp_socket& socket)
 }
 void just_print(tcp_socket& socket)
 {
-    printf("accepted_fd: %d\n", socket.get_descriptor());
-    fflush(stdout);
     socket.connect_on_read(&just_get);
 }
 
 void on_error(const std::exception& e)
 {
-    printf("%s\n", e.what());
-    fflush(stdout);
+    std::cout << e.what() << std::endl;
 }
 
 epoll_handler handler;

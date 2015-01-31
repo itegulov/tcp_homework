@@ -29,7 +29,7 @@ MainWindow::MainWindow(QWidget *parent) :
     client.connect_on_connect(boost::bind(&MainWindow::onConnected, this));
     client.connect_on_body(boost::bind(&MainWindow::onMessage, this, _1, _2, _3));
     client.connect();
-    connect(this, SIGNAL(on_message(QByteArray)), this, SLOT(onMessage2(QByteArray)));
+    connect(this, SIGNAL(onMessageSignal(QByteArray)), this, SLOT(onMessage(QByteArray)));
     connect(ui->textLineEdit, SIGNAL(returnPressed()), this, SLOT(on_sendButton_clicked()));
 }
 
@@ -60,10 +60,10 @@ void MainWindow::onConnected()
 void MainWindow::onMessage(http_client_request& request, const std::string& data, http_response& response)
 {
     //Because of QT i need to move to main thread
-    on_message(QByteArray(data.c_str()));
+    onMessageSignal(QByteArray(data.c_str()));
 }
 
-void MainWindow::onMessage2(QByteArray array)
+void MainWindow::onMessage(QByteArray array)
 {
     QLabel *label = new QLabel(array, this);
     ui->chatLayout->addWidget(label);

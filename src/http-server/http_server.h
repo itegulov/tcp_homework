@@ -28,12 +28,19 @@ public:
         on_body.connect(function);
     }
 
+    template<typename T>
+    void connect_on_error(T function)
+    {
+        on_error.connect(function);
+    }
+
     std::vector<std::pair<http_request&, http_response&> > get_connections() const;
 
 
 private:
     boost::signals2::signal<void (http_request&, http_response&)> on_request;
     boost::signals2::signal<void (http_request&, const std::string&, http_response&)> on_body;
+    boost::signals2::signal<void (const std::exception&)> on_error;
 
     void on_connection(tcp_socket& socket);
 

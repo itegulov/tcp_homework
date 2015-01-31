@@ -25,13 +25,13 @@ protected:
 private slots:
     void onConnected();
     void onMessage(http_client_request& request, const std::string& data, http_response& response);
-    void onMessage2(QByteArray array);
+    void onMessage(QByteArray array);
     void onHeaders(http_client_request& request, http_response& response);
 
     void on_sendButton_clicked();
 
 signals:
-    void on_message(QByteArray array);
+    void onMessageSignal(QByteArray array);
 
 
 private:

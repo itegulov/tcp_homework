@@ -26,9 +26,13 @@ void on_body(http_request& request, const std::string& data, http_response& resp
     }
 }
 
+void on_error(const std::exception& e) {
+
+}
+
 void sig_handler(int signum)
 {
-
+    handler.stop();
 }
 
 int main()
@@ -47,6 +51,7 @@ int main()
     {
         sigaction(SIGTERM, &new_action, nullptr);
     }
+    server.connect_on_error(&on_error);
     server.connect_on_request(&on_request);
     server.connect_on_body(&on_body);
     handler.start();
